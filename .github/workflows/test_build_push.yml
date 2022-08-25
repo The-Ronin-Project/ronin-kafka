@@ -1,0 +1,49 @@
+name: Test Build Push
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  ###############################################
+  # Run tests and publish coverage to codecov.io
+  ###############################################
+  test:
+    runs-on: self-hosted
+    env:
+      base-directory: ./
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          java-version: 17
+          distribution: "zulu"
+
+      - name: Test
+        run: ./gradlew test
+
+# TODO: sounds like dev exp is trying to figure out what to do here
+#      - name: Kafka Reference App Upload Coverage
+#        uses: codecov/codecov-action@v2
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          fail_ci_if_error: true
+#          file: ${{env.base-directory}}/codecov/test/jacocoTestReport.xml
+
+# TODO: disabling this until there's something to push and I have secrets setup
+#  application-image:
+#    if: github.ref == 'refs/heads/main'
+#    name: Build and Push image to Nexus
+#    uses: projectronin/github/.github/workflows/image_push_nexus.yml@master
+#    needs:
+#      - test
+#    with:
+#      base-directory: ./
+#      image-tag: "${{ github.sha }}"
+#      repo: "ronin-spring-kafka"
+#      build_boot_jar: true
+#    secrets:
+#      username: ${{ secrets.NEXUS_DOCKER_USERNAME }}
+#      password: ${{ secrets.NEXUS_DOCKER_PASSWORD }}
