@@ -1,0 +1,36 @@
+# Use this for running a local kafka cluster via docker compose
+#
+#   * run the cluster: `docker compose -f docker-compose-kafka.yaml up -d`
+#   * see if the cluster is running: `docker compose -f docker-compose-kafka.yaml ps`
+#   * stop the cluster: `docker compose -f docker-compose-kafka.yaml stop`
+#   * stop and cleanup the cluster: `docker compose -f docker-compose-kafka.yaml down`
+---
+version: '3'
+
+services:
+  kafka:
+    image: docker-proxy.devops.projectronin.io/wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: >-
+        LISTENER_DOCKER_INTERNAL://kafka:19092,
+        LISTENER_DOCKER_EXTERNAL://127.0.0.1:9092
+      KAFKA_LISTENERS: >-
+        LISTENER_DOCKER_INTERNAL://:19092,
+        LISTENER_DOCKER_EXTERNAL://:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
+        LISTENER_DOCKER_INTERNAL:PLAINTEXT,
+        LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: docker-proxy.devops.projectronin.io/zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=zookeeper
