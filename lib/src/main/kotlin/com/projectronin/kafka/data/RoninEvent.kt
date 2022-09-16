@@ -1,9 +1,9 @@
 package com.projectronin.kafka.data
 
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
-data class RoninEvent<T: RoninEvent.Data<*>>(
+data class RoninEvent<T : RoninEvent.Data<*>>(
     val id: String = UUID.randomUUID().toString(),
     val time: Instant = Instant.now(),
     val specVersion: String = "1.0",

@@ -1,12 +1,16 @@
 [versions]
 kotlin = "1.7.10"
 jupiter = "5.9.0"
+jackson = "2.13.3"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
 microutils-kotlin-logging = { module = "io.github.microutils:kotlin-logging-jvm", version = "2.1.23" }
 kafka = { module = "org.apache.kafka:kafka-clients", version = "3.2.1" }
-jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version = "2.13.3" }
+jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-datatype-jdk8 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jdk8", version.ref = "jackson" }
+jackson-module-parameterNames= { module = "com.fasterxml.jackson.module:jackson-module-parameter-names", version.ref = "jackson" }
 
 logstash-logback = { module = "net.logstash.logback:logstash-logback-encoder", version = "7.2"}
 logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.2.11" }
@@ -18,3 +22,4 @@ mockk = { module = "io.mockk:mockk", version = "1.12.5" }
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 pretty-jupiter = { id = "io.github.joselion.pretty-jupiter", version = "2.0.1" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.0.0" }

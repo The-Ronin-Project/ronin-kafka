@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.pretty.jupiter)
     jacoco
+    alias(libs.plugins.ktlint)
 }
 
 dependencies {
@@ -9,6 +10,9 @@ dependencies {
     implementation(libs.microutils.kotlin.logging)
     implementation(libs.kafka)
     implementation(libs.jackson)
+    implementation(libs.jackson.datatype.jsr310)
+    implementation(libs.jackson.datatype.jdk8)
+    implementation(libs.jackson.module.parameterNames)
 
     runtimeOnly(libs.logstash.logback)
 

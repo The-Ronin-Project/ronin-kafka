@@ -8,6 +8,8 @@
         </encoder>
     </appender>
 
+    <logger name="com.projectronin.kafka" level="DEBUG" />
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
