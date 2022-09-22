@@ -25,7 +25,7 @@ fun main() {
             "group.id" to "processing-consumer-application",
         ),
         exceptionHandler = object : ConsumerExceptionHandler {
-            override fun recordHandlingException(record: ConsumerRecord<String, String>, t: Throwable) {
+            override fun recordHandlingException(record: ConsumerRecord<String, ByteArray>, t: Throwable) {
                 logger.error(t) { "Failed to parse kafka record into a RoninEvent! - $record" }
                 // do something useful with the record
             }

@@ -7,6 +7,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
  * Allows consumers of [com.projectronin.kafka.RoninConsumer] to receive callbacks on exceptions
  */
 interface ConsumerExceptionHandler {
-    fun recordHandlingException(record: ConsumerRecord<String, String>, t: Throwable)
+    fun recordHandlingException(record: ConsumerRecord<String, ByteArray>, t: Throwable)
     fun eventProcessingException(events: List<RoninEvent<*>>, t: Throwable)
 }

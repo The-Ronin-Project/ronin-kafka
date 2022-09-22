@@ -5,6 +5,7 @@ jackson = "2.13.3"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
+kotlinx-coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
 microutils-kotlin-logging = { module = "io.github.microutils:kotlin-logging-jvm", version = "2.1.23" }
 kafka = { module = "org.apache.kafka:kafka-clients", version = "3.2.1" }
 jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
@@ -14,6 +15,8 @@ jackson-module-parameterNames= { module = "com.fasterxml.jackson.module:jackson-
 
 logstash-logback = { module = "net.logstash.logback:logstash-logback-encoder", version = "7.2"}
 logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.2.11" }
+
+micrometer = "io.micrometer:micrometer-core:1.9.4"
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jupiter" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "jupiter" }

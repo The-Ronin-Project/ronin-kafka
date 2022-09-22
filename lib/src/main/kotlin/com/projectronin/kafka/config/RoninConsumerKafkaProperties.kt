@@ -20,7 +20,7 @@ class RoninConsumerKafkaProperties(vararg configs: Pair<String, *>) {
                 put("key.deserializer.encoding", StandardCharsets.UTF_8.name())
                 put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
                 put("value.deserializer.encoding", StandardCharsets.UTF_8.name())
-                put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+                put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer")
 
                 put("enable.auto.commit", false)
                 put("auto.offset.reset", "earliest")

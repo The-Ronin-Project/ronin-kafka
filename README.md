@@ -18,10 +18,10 @@ The TODO list:
 3. Review logging messages and levels
 4. `RoninProducer`
    1. Add some exception handling
-   2. Metrics
+   2. ~~Metrics~~
    3. Add support for custom partitioner
 5. `RoninConsumer`
-   1. Metrics
+   1. ~~Metrics~~
    2. Add support for consumer re-balance events?
 6. Test out access patterns and usability with product engineering
 7. Confirm/tweak default Kafka configurations

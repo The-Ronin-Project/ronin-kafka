@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.microutils.kotlin.logging)
     implementation(libs.jackson)
     implementation(libs.kafka)
+    implementation(libs.micrometer)
 
     runtimeOnly(libs.logstash.logback)
     runtimeOnly(libs.logback.classic)

@@ -6,6 +6,7 @@ import com.projectronin.kafka.config.RoninProducerKafkaProperties
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.StringHeader
+import io.micrometer.core.instrument.MeterRegistry
 import mu.KLogger
 import mu.KotlinLogging
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -13,6 +14,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 /**
  * Ronin base kafka producer
@@ -37,10 +39,17 @@ open class RoninProducer(
     val dataContentType: String = "application/json",
     val mapper: ObjectMapper = MapperFactory.mapper,
     val kafkaProperties: RoninProducerKafkaProperties = RoninProducerKafkaProperties(),
-    val kafkaProducer: KafkaProducer<String, String> = KafkaProducer<String, String>(kafkaProperties.properties)
+    val kafkaProducer: KafkaProducer<String, ByteArray> = KafkaProducer<String, ByteArray>(kafkaProperties.properties),
+    val meterRegistry: MeterRegistry? = null
 ) {
     private val instantFormatter = DateTimeFormatter.ISO_INSTANT
     private val logger: KLogger = KotlinLogging.logger { }
+
+    object Metrics {
+        // KafkaProducer.send is async, this measures the time between when send is called and the callback is invoked
+        const val SEND_TIMER = "roninkafka.producer.send"
+        const val FLUSH_TIMER = "roninkafka.producer.flush"
+    }
 
     /**
      * Send an [event] to the configured kafka topic
@@ -51,23 +60,34 @@ open class RoninProducer(
             topic,
             null, // partition
             event.subject, // key
-            mapper.writeValueAsString(event.data), // value
+            mapper.writeValueAsBytes(event.data), // value
             recordHeaders(event)
         )
         logger.debug { "payload: ${record.value()}" }
 
+        val start = System.currentTimeMillis()
         return kafkaProducer
             .send(record) { metadata, e ->
-                when (e) {
-                    null -> logger.debug {
-                        "successfully sent event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
-                    }
-                    else -> {
-                        logger.error(e) {
-                            "Exception sending event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
+                val success: Boolean =
+                    when (e) {
+                        null -> {
+                            logger.debug {
+                                "successfully sent event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
+                            }
+                            true
+                        }
+
+                        else -> {
+                            logger.error(e) {
+                                "Exception sending event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
+                            }
+                            false
                         }
                     }
-                }
+
+                meterRegistry
+                    ?.timer(Metrics.SEND_TIMER, "success", success.toString(), "topic", topic, "ce_type", event.type)
+                    ?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
             }
     }
 
@@ -91,7 +111,13 @@ open class RoninProducer(
     /**
      * Flushes the producer queue of all unsent events
      */
-    fun flush() = kafkaProducer.flush()
+    fun flush() {
+        val start = System.currentTimeMillis()
+        kafkaProducer.flush()
+        meterRegistry
+            ?.timer(Metrics.FLUSH_TIMER)
+            ?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+    }
 
     /**
      * translate [event] into a list of headers for a kafka record

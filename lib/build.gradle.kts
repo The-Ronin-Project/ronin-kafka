@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.jackson.datatype.jsr310)
     implementation(libs.jackson.datatype.jdk8)
     implementation(libs.jackson.module.parameterNames)
+    implementation(libs.micrometer)
 
     runtimeOnly(libs.logstash.logback)
 
@@ -20,7 +21,9 @@ dependencies {
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.hamcrest)
     testImplementation(libs.mockk)
-    testRuntimeOnly(libs.slf4j.simple)
+    testImplementation(libs.logstash.logback)
+    testImplementation(libs.kotlinx.coroutines)
+    testRuntimeOnly(libs.logback.classic)
 }
 
 jacoco {

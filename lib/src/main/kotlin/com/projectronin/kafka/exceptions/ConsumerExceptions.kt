@@ -15,7 +15,7 @@ class EventHeaderMissing(missingHeaders: List<String>) : RuntimeException(
  * Occurs when a Kafka message is received with a `ce_type` header that the [com.projectronin.kafka.RoninConsumer]'s
  * [com.projectronin.kafka.RoninConsumer.typeMap] does not have an entry for.
  */
-class UnknownEventType(val key: String, val type: String) : RuntimeException("No processor found for event type `$type`")
+class UnknownEventType(val key: String, val type: String?) : RuntimeException("No processor found for event type `$type`")
 
 /**
  * Occurs when a process handler returns [RoninEventResult.TRANSIENT_FAILURE] more than
