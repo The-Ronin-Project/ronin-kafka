@@ -1,5 +1,6 @@
 package com.projectronin.kafka
 
+import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import io.mockk.every
 import io.mockk.mockk
@@ -54,17 +55,17 @@ class RoninProducerTests {
             assertNull(partition())
             assertEquals("subject", key())
             assertEquals("{\"id\":3}", value())
-            assertTrue("1".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_id").value()))
-            assertTrue("tests".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_source").value()))
-            assertTrue("4.2".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_specversion").value()))
-            assertTrue("dummy".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_type").value()))
-            assertTrue("stuff".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("content-type").value()))
+            assertTrue("1".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.id).value()))
+            assertTrue("tests".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.source).value()))
+            assertTrue("4.2".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.specVersion).value()))
+            assertTrue("dummy".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.type).value()))
+            assertTrue("stuff".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.contentType).value()))
             assertTrue(
-                "le-schema".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_dataschema").value())
+                "le-schema".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.dataSchema).value())
             )
             assertTrue(
                 "2022-08-08T23:06:40Z".toByteArray(Charsets.UTF_8)
-                    .contentEquals(headers().lastHeader("ce_time").value())
+                    .contentEquals(headers().lastHeader(KafkaHeaders.time).value())
             )
         }
         assertEquals(metadata, response.get())
@@ -90,19 +91,19 @@ class RoninProducerTests {
             assertNull(partition())
             assertEquals("subject", key())
             assertEquals("{\"id\":3}", value())
-            assertNotNull(headers().lastHeader("ce_id").value())
-            assertTrue("source".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_source").value()))
-            assertTrue("1.0".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_specversion").value()))
-            assertTrue("dummy".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_type").value()))
+            assertNotNull(headers().lastHeader(KafkaHeaders.id).value())
+            assertTrue("source".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.source).value()))
+            assertTrue("1.0".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.specVersion).value()))
+            assertTrue("dummy".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.type).value()))
             assertTrue(
                 "application/json"
                     .toByteArray(Charsets.UTF_8)
-                    .contentEquals(headers().lastHeader("content-type").value())
+                    .contentEquals(headers().lastHeader(KafkaHeaders.contentType).value())
             )
             assertTrue(
-                "dataschema".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader("ce_dataschema").value())
+                "dataschema".toByteArray(Charsets.UTF_8).contentEquals(headers().lastHeader(KafkaHeaders.dataSchema).value())
             )
-            assertNotNull(headers().lastHeader("ce_time").value())
+            assertNotNull(headers().lastHeader(KafkaHeaders.time).value())
         }
         assertEquals(metadata, response.get())
     }

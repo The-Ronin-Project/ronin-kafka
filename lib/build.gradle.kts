@@ -18,7 +18,9 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.hamcrest)
     testImplementation(libs.mockk)
+    testRuntimeOnly(libs.slf4j.simple)
 }
 
 jacoco {

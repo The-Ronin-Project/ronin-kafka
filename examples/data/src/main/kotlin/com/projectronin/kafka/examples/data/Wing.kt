@@ -1,3 +1,5 @@
+package com.projectronin.kafka.examples.data
+
 import com.projectronin.kafka.data.RoninEvent
 
 data class Wing(

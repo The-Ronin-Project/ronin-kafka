@@ -1,6 +1,8 @@
 import com.projectronin.kafka.RoninProducer
-import com.projectronin.kafka.config.KafkaProperties
+import com.projectronin.kafka.config.RoninProducerKafkaProperties
 import com.projectronin.kafka.data.RoninEvent
+import com.projectronin.kafka.examples.data.Van
+import com.projectronin.kafka.examples.data.Wing
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
@@ -14,13 +16,13 @@ fun Wing.toEvent(type: String): RoninEvent<Wing> =
         subject = "wing/$id",
     )
 
-fun main(args: Array<String>) {
+fun main() {
     val roninProducer =
         RoninProducer(
-            topic = "topic.1",
-            source = "my-app",
+            topic = "local.us.ronin-kafka.rides.v1",
+            source = "producer-application",
             dataSchema = "https://schema",
-            kafkaProperties = KafkaProperties("bootstrap.servers" to "localhost:9092")
+            kafkaProperties = RoninProducerKafkaProperties("bootstrap.servers" to "localhost:9092")
         )
 
     val formatter = DateTimeFormatter.ofPattern("E-A")
@@ -32,20 +34,21 @@ fun main(args: Array<String>) {
         "vanagon",
         Van.Style.CAMPER
     )
-    val wing = Wing(r.nextInt(), "zero3", area = 19, aspectRatio = 4.5f)
+    val wing = Wing(r.nextInt(1000, 9999), "zero3", area = 19, aspectRatio = 4.5f)
 
     roninProducer.send("van.cruising", "van/${van.id}", van)
     roninProducer.send("wing.flown", "wing/${wing.id}", wing)
 
     roninProducer.send(
         RoninEvent(
-            source = "ronin-kafka-examples",
+            source = "producer-application",
             dataSchema = "https://not-a-schema",
-            data = Van("the beast", "chevy", "astrovan", Van.Style.CREEPER), type = "van.cruising",
-            subject = "van/the beast",
+            data = Van("the beast", "chevy", "astrovan", Van.Style.CREEPER),
+            type = "van.cruising",
+            subject = "van/the-beast",
         )
     )
-    roninProducer.send(Wing(r.nextInt(), "zero3", area = 19, aspectRatio = 4.5f).toEvent("wing.flown"))
+    roninProducer.send(Wing(r.nextInt(1000, 9999), "vivo", area = 19, aspectRatio = 5.48f).toEvent("wing.flown"))
 
     // flush out any queued, but unsent events before we exit
     roninProducer.flush()

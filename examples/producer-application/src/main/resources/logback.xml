@@ -9,8 +9,9 @@
     </appender>
 
     <logger name="com.projectronin.kafka" level="DEBUG" />
+    <logger name="org.apache.kafka.clients" level="INFO" />
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

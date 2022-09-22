@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation(project(":lib"))
+    implementation(project(":examples:data"))
 
     implementation(libs.kotlin.stdlib)
     implementation(libs.microutils.kotlin.logging)
