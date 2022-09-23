@@ -2,18 +2,21 @@ plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.pretty.jupiter)
     alias(libs.plugins.ktlint)
+    application
 }
 
 dependencies {
-    implementation(project(":lib"))
+    implementation(libs.kotlin.stdlib)
+    implementation(rootProject)
     implementation(project(":examples:data"))
 
     implementation(libs.kotlin.stdlib)
     implementation(libs.microutils.kotlin.logging)
-    implementation(libs.jackson)
-    implementation(libs.kafka)
-    implementation(libs.micrometer)
 
     runtimeOnly(libs.logstash.logback)
     runtimeOnly(libs.logback.classic)
+}
+
+application {
+    mainClass.set("MainKt")
 }

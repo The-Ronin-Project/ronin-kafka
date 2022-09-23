@@ -10,9 +10,7 @@ on:
   pull_request:
 
 jobs:
-  ###############################################
-  # Run tests and publish coverage to codecov.io
-  ###############################################
+  # Run tests, publish coverage to codecov.io, and push to maven
   test:
     runs-on: self-hosted
     env:
@@ -38,9 +36,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          file: ./lib/build/codecov/test/jacocoTestReport.xml
+          file: ./build/codecov/test/jacocoTestReport.xml
 
-# TODO: disabling this until I figure out details
-#  publish:
-#    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#    name: Publish library to Nexus
+      - name: publish
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_MAVEN_USER }}
+          NEXUS_TOKEN: ${{ secrets.NEXUS_MAVEN_TOKEN }}
+        run: ./gradlew publish

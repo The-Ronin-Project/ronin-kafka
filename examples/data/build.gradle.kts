@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
     implementation(libs.kotlin.stdlib)
-    implementation(project(":lib"))
+    implementation(rootProject)
 }
