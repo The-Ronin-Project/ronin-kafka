@@ -1,6 +1,7 @@
 package com.projectronin.kafka
 
 import com.fasterxml.jackson.databind.JsonMappingException
+import com.projectronin.kafka.config.RoninConsumerKafkaProperties
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
@@ -35,7 +36,8 @@ class RoninConsumerProcessTests {
         listOf("topic.1", "topic.2"),
         mapOf("stuff" to Stuff::class),
         kafkaConsumer = kafkaConsumer,
-        meterRegistry = metrics
+        meterRegistry = metrics,
+        kafkaProperties = RoninConsumerKafkaProperties()
     )
     private val fixedInstant = Instant.ofEpochSecond(1660000000)
 
@@ -103,7 +105,8 @@ class RoninConsumerProcessTests {
         val roninConsumer = RoninConsumer(
             listOf("topic.1", "topic.2"),
             mapOf("stuff" to Stuff::class),
-            kafkaConsumer = kafkaConsumer
+            kafkaConsumer = kafkaConsumer,
+            kafkaProperties = RoninConsumerKafkaProperties()
         )
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
             MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
@@ -267,7 +270,8 @@ class RoninConsumerProcessTests {
                     TODO("Not yet implemented")
                 }
             },
-            meterRegistry = metrics
+            meterRegistry = metrics,
+            kafkaProperties = RoninConsumerKafkaProperties()
         )
         val exceptionRecord = MockUtils.record("stuff", "key1.2", "{\"nope\": 3}")
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
@@ -354,7 +358,8 @@ class RoninConsumerProcessTests {
                     exceptions.add(t)
                 }
             },
-            meterRegistry = metrics
+            meterRegistry = metrics,
+            kafkaProperties = RoninConsumerKafkaProperties()
         )
 
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
@@ -405,7 +410,8 @@ class RoninConsumerProcessTests {
                 override fun eventProcessingException(events: List<RoninEvent<*>>, t: Throwable) {
                     throw RuntimeException("kaboom kaboom")
                 }
-            }
+            },
+            kafkaProperties = RoninConsumerKafkaProperties()
         )
 
         every { kafkaConsumer.poll(any<Duration>()) } returns mockk {

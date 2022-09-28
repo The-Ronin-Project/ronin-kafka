@@ -24,10 +24,10 @@ import java.util.concurrent.TimeUnit
  * @property topic the kafka topic to produce to
  * @property source the name of the application producing the RoninEvents
  * @property dataSchema the schema for validating the RoninEvent.Data payloads
+ * @property kafkaProperties Kafka configuration properties. See [RoninProducerKafkaProperties] for defaults
  * @property specVersion Ronin Event Standard spec version. Currently MUST be 1.0
  * @property dataContentType Content type that the RoninEvent. Data will be serialized as. Currently only `application/json`
  * @property mapper Jackson object mapper to use for serialization
- * @property kafkaProperties Kafka configuration properties. See [RoninProducerKafkaProperties] for defaults
  * @property kafkaProducer [KafkaProducer] instance to use for sending kafka records
  * @constructor Creates a kafka producer for RoninEvents
  */
@@ -35,10 +35,10 @@ open class RoninProducer(
     val topic: String,
     val source: String,
     val dataSchema: String,
+    val kafkaProperties: RoninProducerKafkaProperties,
     val specVersion: String = "1.0",
     val dataContentType: String = "application/json",
     val mapper: ObjectMapper = MapperFactory.mapper,
-    val kafkaProperties: RoninProducerKafkaProperties = RoninProducerKafkaProperties(),
     val kafkaProducer: KafkaProducer<String, ByteArray> = KafkaProducer<String, ByteArray>(kafkaProperties.properties),
     val meterRegistry: MeterRegistry? = null
 ) {
@@ -49,6 +49,10 @@ open class RoninProducer(
         // KafkaProducer.send is async, this measures the time between when send is called and the callback is invoked
         const val SEND_TIMER = "roninkafka.producer.send"
         const val FLUSH_TIMER = "roninkafka.producer.flush"
+    }
+
+    init {
+        logger.info { "sending on topic $topic" }
     }
 
     /**

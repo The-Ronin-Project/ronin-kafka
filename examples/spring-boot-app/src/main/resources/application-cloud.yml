@@ -1,0 +1,15 @@
+kafka:
+  bootstrap:
+    servers: kafka-01.dev.us-phoenix-1.oci.projectronin.cloud:9092,kafka-02.dev.us-phoenix-1.oci.projectronin.cloud:9092,kafka-03.dev.us-phoenix-1.oci.projectronin.cloud:9092
+  properties:
+    security:
+      protocol: SASL_SSL
+    sasl:
+      mechanism: SCRAM-SHA-512
+      jaas:
+        config: 'org.apache.kafka.common.security.scram.ScramLoginModule required username="${kafka.sasl.username}" password="${kafka.sasl.password}";'
+listen:
+  topic: oci.us-phoenix-1.devx-sample.heartbeat
+  group: devex_kafka_service_group
+send:
+  topic: oci.us-phoenix-1.devx-sample.heartbeat

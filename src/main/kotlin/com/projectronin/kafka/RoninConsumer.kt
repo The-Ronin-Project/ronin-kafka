@@ -41,7 +41,7 @@ import kotlin.reflect.KClass
 class RoninConsumer(
     val topics: List<String>,
     val typeMap: Map<String, KClass<out RoninEvent.Data<*>>>,
-    val kafkaProperties: RoninConsumerKafkaProperties = RoninConsumerKafkaProperties(),
+    val kafkaProperties: RoninConsumerKafkaProperties,
     private val mapper: ObjectMapper = MapperFactory.mapper,
     private val kafkaConsumer: KafkaConsumer<String, ByteArray> = KafkaConsumer(kafkaProperties.properties),
     private val exceptionHandler: ConsumerExceptionHandler? = null,

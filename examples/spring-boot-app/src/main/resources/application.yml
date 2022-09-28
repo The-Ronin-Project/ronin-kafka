@@ -1,0 +1,6 @@
+topic:
+    prefix: local
+listen:
+  topic: ${topic.prefix}.test
+send:
+  topic: ${topic.prefix}.test

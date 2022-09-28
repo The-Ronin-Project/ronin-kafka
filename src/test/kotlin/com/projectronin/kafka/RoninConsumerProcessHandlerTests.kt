@@ -1,5 +1,6 @@
 package com.projectronin.kafka
 
+import com.projectronin.kafka.config.RoninConsumerKafkaProperties
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
@@ -32,7 +33,8 @@ class RoninConsumerProcessHandlerTests {
         mapOf("stuff" to Stuff::class),
         kafkaConsumer = kafkaConsumer,
         exceptionHandler = exceptionHandler,
-        meterRegistry = metrics
+        meterRegistry = metrics,
+        kafkaProperties = RoninConsumerKafkaProperties()
     )
 
     @Test

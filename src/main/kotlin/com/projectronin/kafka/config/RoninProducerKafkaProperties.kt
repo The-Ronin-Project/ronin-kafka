@@ -21,7 +21,7 @@ class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
                 put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
                 put("value.serializer.encoding", StandardCharsets.UTF_8.name())
                 put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
-                put("acks", "1") // 1 --> written to the leader, but not yet written to all followers
+                put("acks", "all") // kafka default of all
                 put("enable.idempotent", false)
                 put("retries", 3)
                 put("max.in.flight.requests.per.connection", 1)

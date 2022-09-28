@@ -1,5 +1,6 @@
 package com.projectronin.kafka
 
+import com.projectronin.kafka.config.RoninConsumerKafkaProperties
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import io.mockk.every
@@ -21,7 +22,8 @@ class RoninConsumerStatusTests {
     private val roninConsumer = RoninConsumer(
         listOf("topic.1", "topic.2"),
         mapOf("stuff" to Stuff::class),
-        kafkaConsumer = kafkaConsumer
+        kafkaConsumer = kafkaConsumer,
+        kafkaProperties = RoninConsumerKafkaProperties()
     )
 
     @Test
@@ -37,13 +39,13 @@ class RoninConsumerStatusTests {
             MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
         )
 
-        var inProcessstatus: RoninConsumer.Status = RoninConsumer.Status.INITIALIZED
+        var inProcessStatus: RoninConsumer.Status = RoninConsumer.Status.INITIALIZED
         roninConsumer.process {
-            inProcessstatus = roninConsumer.status()
+            inProcessStatus = roninConsumer.status()
             roninConsumer.stop()
             RoninEventResult.ACK
         }
-        assertEquals(RoninConsumer.Status.PROCESSING, inProcessstatus)
+        assertEquals(RoninConsumer.Status.PROCESSING, inProcessStatus)
         assertEquals(RoninConsumer.Status.STOPPED, roninConsumer.status())
     }
 }

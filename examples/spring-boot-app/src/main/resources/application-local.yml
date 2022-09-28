@@ -1,0 +1,12 @@
+kafka:
+  bootstrap:
+    servers: localhost:9092
+  properties:
+    security:
+      protocol: PLAINTEXT
+    sasl:
+      mechanism: GSSAPI
+      jaas:
+        config: ""
+listen:
+  group: spring-boot-app-consumer

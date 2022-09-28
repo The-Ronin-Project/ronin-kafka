@@ -1,5 +1,6 @@
 package com.projectronin.kafka
 
+import com.projectronin.kafka.config.RoninProducerKafkaProperties
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import io.micrometer.core.instrument.ImmutableTag
@@ -32,6 +33,7 @@ class RoninProducerTests {
         "dataschema",
         kafkaProducer = kafkaProducer,
         meterRegistry = metrics,
+        kafkaProperties = RoninProducerKafkaProperties()
     )
     private val fixedInstant = Instant.ofEpochSecond(1660000000)
 
@@ -103,6 +105,7 @@ class RoninProducerTests {
             "source",
             "dataschema",
             kafkaProducer = kafkaProducer,
+            kafkaProperties = RoninProducerKafkaProperties()
         )
         val recordSlot = slot<ProducerRecord<String, ByteArray>>()
         val metadata = mockk<RecordMetadata>()
