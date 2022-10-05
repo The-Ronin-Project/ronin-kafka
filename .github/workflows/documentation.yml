@@ -1,0 +1,20 @@
+name: Documentation
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate:
+    name: Generate Documentation
+    uses: projectronin/github/.github/workflows/gradle-documenter.yml@master
+    with:
+      gradle_task: dokkaHtml
+      docs_dir: ./public
+
+  publish:
+    name: Publish Documentation
+    needs: [generate]
+    if: needs.generate.outputs.changes == 'true'
+    uses: projectronin/github/.github/workflows/gh-pages-publisher.yml@master
+    with:
+      docs_dir: ./public/

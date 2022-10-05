@@ -25,7 +25,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.reflect.KClass
 
 /**
- * Ronin base kafka consumer
+ * Ronin base kafka consumer.
+ *
+ * Used to consume and process [RoninEvent]s from kafka
  *
  * See Also: [Ronin Event Standard](https://projectronin.atlassian.net/wiki/spaces/ENG/pages/1748041738/Ronin+Event+Standard)
  *

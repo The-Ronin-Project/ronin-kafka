@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.net.URL
 
 plugins {
     // intellij shows an error with this, but it's fine: https://youtrack.jetbrains.com/issue/KTIJ-19369
@@ -7,6 +8,7 @@ plugins {
     jacoco
     alias(libs.plugins.ktlint)
     `maven-publish`
+    alias(libs.plugins.dokka)
 }
 
 allprojects {
@@ -76,6 +78,33 @@ tasks.test {
     testLogging.showStandardStreams = true
     testLogging.showExceptions = true
     finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.dokkaHtml.configure {
+    outputDirectory.set(rootDir.resolve("public"))
+
+    dokkaSourceSets {
+        configureEach {
+            includes.from("README.md")
+
+            externalDocumentationLink {
+                url.set(URL("https://kafka.apache.org/33/javadoc/"))
+            }
+
+            sourceLink {
+                // Unix based directory relative path to the root of the project (where you execute gradle respectively).
+                localDirectory.set(file("src/main/kotlin"))
+                // URL showing where the source code can be accessed through the web browser
+                remoteUrl.set(
+                    URL(
+                        "https://github.com/projectronin/ronin-kafka/blob/main/ronin-kafka/src/main/kotlin/"
+                    )
+                )
+                // Suffix which is used to append the line number to the URL. Use #L for GitHub
+                remoteLineSuffix.set("#L")
+            }
+        }
+    }
 }
 
 publishing {
