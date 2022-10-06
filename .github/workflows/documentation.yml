@@ -4,17 +4,9 @@ on:
     branches: [ main ]
 
 jobs:
-  generate:
-    name: Generate Documentation
-    uses: projectronin/github/.github/workflows/gradle-documenter.yml@master
-    with:
-      gradle_task: dokkaHtml
-      docs_dir: ./public
-
-  publish:
-    name: Publish Documentation
-    needs: [generate]
-    if: needs.generate.outputs.changes == 'true'
+  generate-and-publish:
+    name: Generate and publish Documentation
     uses: projectronin/github/.github/workflows/gh-pages-publisher.yml@master
     with:
-      docs_dir: ./public/
+      gradle_task: dokkaHtml
+      docs_dir: ./build/dokka/html

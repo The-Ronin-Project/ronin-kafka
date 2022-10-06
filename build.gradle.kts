@@ -81,7 +81,7 @@ tasks.test {
 }
 
 tasks.dokkaHtml.configure {
-    outputDirectory.set(rootDir.resolve("public"))
+    outputDirectory.set(buildDir.resolve("dokka/html"))
 
     dokkaSourceSets {
         configureEach {
