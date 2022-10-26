@@ -6,7 +6,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import java.util.UUID
 
 class RoninEventTests {
-    data class Data(override val id: Int) : RoninEvent.Data<Int>
+    data class Data(val id: Int)
 
     private val event = RoninEvent(
         dataSchema = "https://projectronin.com/data-schema",

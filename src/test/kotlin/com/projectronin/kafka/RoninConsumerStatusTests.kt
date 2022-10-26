@@ -1,7 +1,6 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
-import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import io.mockk.every
 import io.mockk.mockk
@@ -13,7 +12,7 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 
 class RoninConsumerStatusTests {
-    data class Stuff(override val id: String) : RoninEvent.Data<String>
+    data class Stuff(val id: String)
 
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit

@@ -1,7 +1,6 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
-import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
 import com.projectronin.kafka.exceptions.TransientRetriesExhausted
@@ -20,7 +19,7 @@ import java.time.Duration
  * These are just testing the return values of teh handler function and that they're correctly dealt with
  */
 class RoninConsumerProcessHandlerTests {
-    data class Stuff(override val id: String) : RoninEvent.Data<String>
+    data class Stuff(val id: String)
 
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit

@@ -32,7 +32,7 @@ import kotlin.reflect.KClass
  * See Also: [Ronin Event Standard](https://projectronin.atlassian.net/wiki/spaces/ENG/pages/1748041738/Ronin+Event+Standard)
  *
  * @property topics List of kafka topics to subscribe to
- * @property typeMap Mapping of [RoninEvent.type] to [KClass] where the [KClass] is of type [RoninEvent.Data].
+ * @property typeMap Mapping of [RoninEvent.type] to [KClass] where the [KClass] is of any type.
  *                   Used to deserialize events.
  * @property kafkaProperties kafka configuration settings. See [RoninConsumerKafkaProperties] for defaults
  * @property mapper ObjectMapper for deserializing events
@@ -42,7 +42,7 @@ import kotlin.reflect.KClass
  */
 class RoninConsumer(
     val topics: List<String>,
-    val typeMap: Map<String, KClass<out RoninEvent.Data<*>>>,
+    val typeMap: Map<String, KClass<*>>,
     val kafkaProperties: RoninConsumerKafkaProperties,
     private val mapper: ObjectMapper = MapperFactory.mapper,
     private val kafkaConsumer: KafkaConsumer<String, ByteArray> = KafkaConsumer(kafkaProperties.properties),
@@ -339,7 +339,7 @@ class RoninConsumer(
         headers: Map<String, String>,
         key: String,
         value: ByteArray,
-        valueClass: KClass<out RoninEvent.Data<*>>
+        valueClass: KClass<out Any>
     ): RoninEvent<*> =
         RoninEvent(
             id = headers.getValue(KafkaHeaders.id),

@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
  *
  * @property topic the kafka topic to produce to
  * @property source the name of the application producing the RoninEvents
- * @property dataSchema the schema for validating the RoninEvent.Data payloads
+ * @property dataSchema the schema for validating the payloads
  * @property kafkaProperties Kafka configuration properties. See [RoninProducerKafkaProperties] for defaults
  * @property specVersion Ronin Event Standard spec version. Currently MUST be 1.0
  * @property dataContentType Content type that the RoninEvent. Data will be serialized as. Currently only `application/json`
@@ -59,7 +59,7 @@ open class RoninProducer(
      * Send an [event] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <T : RoninEvent.Data<*>> send(event: RoninEvent<T>): Future<RecordMetadata> {
+    fun <T> send(event: RoninEvent<T>): Future<RecordMetadata> {
         val record = ProducerRecord(
             topic,
             null, // partition
@@ -99,7 +99,7 @@ open class RoninProducer(
      * Send [data] with the given [type] and [subject] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <ID> send(type: String, subject: String, data: RoninEvent.Data<ID>): Future<RecordMetadata> =
+    fun <T> send(type: String, subject: String, data: T): Future<RecordMetadata> =
         send(
             RoninEvent(
                 dataSchema = dataSchema,
@@ -127,7 +127,7 @@ open class RoninProducer(
      * translate [event] into a list of headers for a kafka record
      * @return list of StringHeader
      */
-    private fun <T : RoninEvent.Data<*>> recordHeaders(event: RoninEvent<T>): List<StringHeader> =
+    private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> =
         listOf(
             StringHeader(KafkaHeaders.id, event.id),
             StringHeader(KafkaHeaders.source, event.source),

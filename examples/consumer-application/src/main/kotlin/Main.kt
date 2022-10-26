@@ -9,14 +9,13 @@ import mu.KLogger
 import mu.KotlinLogging
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import sun.misc.Signal
-import kotlin.reflect.KClass
 
 fun main() {
     val logger: KLogger = KotlinLogging.logger { }
 
     val roninConsumer = RoninConsumer(
         topics = listOf("local.us.ronin-kafka.rides.v1"),
-        typeMap = mapOf<String, KClass<out RoninEvent.Data<*>>>(
+        typeMap = mapOf(
             "van.cruising" to Van::class,
             "wing.flown" to Wing::class
         ),

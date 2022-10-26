@@ -62,8 +62,8 @@ class RoninProducerTests {
                     source = "tests",
                     type = "dummy",
                     subject = "subject",
-                    data = object : RoninEvent.Data<Int> {
-                        override val id: Int = 3
+                    data = object {
+                        val id: Int = 3
                     }
                 )
             )
@@ -128,8 +128,8 @@ class RoninProducerTests {
                     source = "tests",
                     type = "dummy",
                     subject = "subject",
-                    data = object : RoninEvent.Data<Int> {
-                        override val id: Int = 3
+                    data = object {
+                        val id: Int = 3
                     }
                 )
             )
@@ -167,8 +167,8 @@ class RoninProducerTests {
             .send(
                 type = "dummy",
                 subject = "subject",
-                data = object : RoninEvent.Data<Int> {
-                    override val id: Int = 3
+                data = object {
+                    val id: Int = 3
                 }
             )
 

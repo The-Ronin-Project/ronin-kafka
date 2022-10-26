@@ -14,7 +14,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import kotlin.reflect.KClass
 
 @Configuration
 class RoninKafkaFactory(
@@ -31,7 +30,7 @@ class RoninKafkaFactory(
     ) =
         RoninConsumer(
             topics = listOf(topic),
-            typeMap = mapOf<String, KClass<out RoninEvent.Data<*>>>(
+            typeMap = mapOf(
                 "van.cruising" to Van::class,
                 "wing.flown" to Wing::class
             ),

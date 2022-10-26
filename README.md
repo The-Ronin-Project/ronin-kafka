@@ -3,7 +3,7 @@
 `ronin-kafka` is a messaging library for sending and receiving `RoninEvent` objects via kafka. A
 `RoninEvent` object is a data class that provides
 the [Ronin Event Standard](https://projectronin.atlassian.net/l/cp/Ts2DgMuT)
-metadata attributes and a `data` element of type `RoninEvent.Data` for storing an event payload.
+metadata attributes and a `data` element of any type for storing an event payload.
 
 # Status
 
@@ -111,14 +111,14 @@ fields.
 There are two options available for sending an event via `RoninProducer`...
 
 If the auto-generated `RoninEvent` attributes are acceptable, you can just pass in some metadata and an instance
-of a `RoninEvent.Data` class:
+of a class:
 
 ```kotlin
 roninProducer.send(
     "wing.flown",
     "wing/42",
-    object : RoninEvent.Data<Int> {
-        override val id: Int = 42
+    object {
+        val id: Int = 42
     }
 )
 ```
@@ -137,8 +137,8 @@ roninProducer.send(
         dataSchema = "https://not-a-schema",
         type = "wing.flown",
         subject = "wing/42",
-        data = object : RoninEvent.Data<Int> {
-            override val id: Int = 42
+        data = object {
+            val id: Int = 42
         }
     )
 )
@@ -169,7 +169,7 @@ A minimal `RoninConsumer` creation would look something like this:
  val roninConsumer =
     RoninConsumer(
         topics = listOf("local.us.your-system.your-event-type.v1"),
-        typeMap = mapOf<String, KClass<out RoninEvent.Data<*>>>(
+        typeMap = mapOf<String, KClass<out Any>>(
             "type.1" to Type1Class::class,
             "type.2" to Type2Class::class
         ),
