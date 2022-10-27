@@ -38,6 +38,11 @@ allprojects {
     }
 }
 
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
 dependencies {
     api(libs.kafka)
     api(libs.jackson)
