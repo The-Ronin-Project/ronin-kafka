@@ -144,7 +144,9 @@ class RoninConsumer(
      * Discontinue polling done by [process] functions and have them return
      */
     fun stop() = status.set(Status.STOPPED)
-
+    fun unsubscribe() {
+        kafkaConsumer.unsubscribe()
+    }
     /**
      * Commit the offset for the provided record
      * @param record The ConsumerRecord that should be committed as processed for this consumer group

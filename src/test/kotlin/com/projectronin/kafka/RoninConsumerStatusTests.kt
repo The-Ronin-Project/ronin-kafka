@@ -2,13 +2,16 @@ package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
 import com.projectronin.kafka.data.RoninEventResult
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import java.time.Duration
 
 class RoninConsumerStatusTests {
@@ -28,6 +31,12 @@ class RoninConsumerStatusTests {
     @Test
     fun initialized() {
         assertEquals(RoninConsumer.Status.INITIALIZED, roninConsumer.status())
+    }
+
+    @Test
+    fun unsubscribe() {
+        every { kafkaConsumer.unsubscribe() } just Runs
+        assertDoesNotThrow { roninConsumer.unsubscribe() }
     }
 
     @Test
