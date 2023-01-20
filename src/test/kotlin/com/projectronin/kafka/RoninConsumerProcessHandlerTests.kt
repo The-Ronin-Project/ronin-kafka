@@ -134,26 +134,36 @@ class RoninConsumerProcessHandlerTests {
     }
 
     @Test
-    fun `unhandled exception calls exception handler, exits`() {
-        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
+    fun `unhandled exception calls exception handler, but continues processing`() {
+        val mockRecords = MockUtils.records(
             MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"two\"}"),
+            MockUtils.record("stuff", "fail", "{\"id\": \"two\"}"),
+            MockUtils.record("stuff", "key1.3", "{\"id\": \"three\"}"),
+            MockUtils.record("stuff", "key1.4", "{\"id\": \"four\"}"),
+            MockUtils.record("stuff", "last", "{\"id\": \"five\"}"),
         )
+        val mockRecordCount = mockRecords.count()
+        every { kafkaConsumer.poll(any<Duration>()) } returns mockRecords
         every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
 
         var counter = 0
         roninConsumer.process {
             counter++
             if (it.subject == "last") {
-                RoninEventResult.ACK
-            } else {
+                roninConsumer.stop()
+            }
+            if (it.subject == "fail") {
                 throw RuntimeException("kaboom")
+            } else {
+                RoninEventResult.ACK
             }
         }
-        assertEquals(1, counter)
+
+        // expect all records to have been processed, even when 1 was an error.
+        assertEquals(mockRecordCount, counter)
         // TODO: add status check
 
-        verify(exactly = 0) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
+        verify(exactly = (mockRecordCount - 1)) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
         verify(exactly = 0) { exceptionHandler.recordHandlingException(any(), any()) }
         verify(exactly = 1) { exceptionHandler.eventProcessingException(any(), any()) }
         assertEquals(1.0, metrics[RoninConsumer.Metrics.HANDLER_UNHANDLED_EXCEPTION].counter().count())

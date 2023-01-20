@@ -247,7 +247,7 @@ class RoninConsumerProcessTests {
         assertEquals(1.0, metrics[RoninConsumer.Metrics.EXCEPTION_DESERIALIZATION].counter().count())
         assertThat(
             metrics.meters.find { it.id.name == RoninConsumer.Metrics.EXCEPTION_DESERIALIZATION }?.id?.tags,
-            containsInAnyOrder(ImmutableTag("topic", "topic"))
+            containsInAnyOrder(ImmutableTag("topic", "topic"), ImmutableTag("ce_type", "stuff"))
         )
         verify(exactly = 2) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
     }
@@ -326,18 +326,19 @@ class RoninConsumerProcessTests {
             processed,
             contains(
                 RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
             )
         )
 
         assertEquals(1, metrics[RoninConsumer.Metrics.POLL_TIMER].timer().count())
         assertEquals(1, metrics[RoninConsumer.Metrics.POLL_MESSAGE_DISTRIBUTION].summary().count())
-        assertEquals(1, metrics[RoninConsumer.Metrics.MESSAGE_QUEUE_TIMER].timer().count())
+        assertEquals(2, metrics[RoninConsumer.Metrics.MESSAGE_QUEUE_TIMER].timer().count())
         assertEquals(1.0, metrics[RoninConsumer.Metrics.HANDLER_UNHANDLED_EXCEPTION].counter().count())
         assertThat(
             metrics.meters.find { it.id.name == RoninConsumer.Metrics.HANDLER_UNHANDLED_EXCEPTION }?.id?.tags,
             containsInAnyOrder(ImmutableTag("topic", "topic"), ImmutableTag("ce_type", "stuff"))
         )
-        verify(exactly = 0) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
+        verify(exactly = 1) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
     }
 
     @Test
@@ -380,20 +381,19 @@ class RoninConsumerProcessTests {
 
         val exceptionEvent =
             RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two"))
-        assertThat(
-            processed,
-            contains(
-                exceptionEvent,
-            )
-        )
+        val successEvent =
+            RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three"))
+
+        // if a previous event caused an error, the follwoing event should still have been processed.
+        assertThat(processed, contains(exceptionEvent, successEvent))
         assertThat(exceptionEvents, contains(exceptionEvent))
         assertThat(exceptions, contains(exception))
 
         assertEquals(1, metrics[RoninConsumer.Metrics.POLL_TIMER].timer().count())
         assertEquals(1, metrics[RoninConsumer.Metrics.POLL_MESSAGE_DISTRIBUTION].summary().count())
-        assertEquals(1, metrics[RoninConsumer.Metrics.MESSAGE_QUEUE_TIMER].timer().count())
+        assertEquals(2, metrics[RoninConsumer.Metrics.MESSAGE_QUEUE_TIMER].timer().count())
         assertEquals(1.0, metrics[RoninConsumer.Metrics.HANDLER_UNHANDLED_EXCEPTION].counter().count())
-        verify(exactly = 0) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
+        verify(exactly = 1) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
     }
 
     @Test
