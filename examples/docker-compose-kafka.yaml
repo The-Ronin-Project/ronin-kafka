@@ -27,6 +27,12 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
     depends_on:
       - zookeeper
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 30s
 
   zookeeper:
     image: docker-proxy.devops.projectronin.io/zookeeper
