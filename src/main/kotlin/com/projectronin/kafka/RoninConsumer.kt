@@ -260,44 +260,36 @@ class RoninConsumer(
      */
     private fun parseEvent(record: ConsumerRecord<String, ByteArray>): RoninEvent<*>? {
         val headers = parseHeaders(record.headers())
-        val type = headers[KafkaHeaders.type]
+        val type = headers[KafkaHeaders.type] ?: "null"
 
         meterRegistry
-            ?.timer(Metrics.MESSAGE_QUEUE_TIMER, "topic", record.topic(), KafkaHeaders.type, type ?: "null")
+            ?.timer(Metrics.MESSAGE_QUEUE_TIMER, "topic", record.topic(), KafkaHeaders.type, type)
             ?.record(System.currentTimeMillis() - record.timestamp(), TimeUnit.MILLISECONDS)
 
         try {
             validateHeaders(headers)
-        } catch (e: EventHeaderMissing) {
-            logger.warn(e) { "record missing required headers: `${record.key()}`" }
+            val valueClass = typeMap[type] ?: throw UnknownEventType(record.key(), type)
+            return toRoninEvent(headers, record.key(), record.value(), valueClass)
+        } catch (e: Exception) {
+            // determine metric and logMessage to record based on the exception.
+            val (exceptionMetricName, logMessage) = when (e) {
+                is EventHeaderMissing -> {
+                    Pair(Metrics.EXCEPTION_MISSING_HEADER, "Error parsing Record Key `${record.key()}`: Missing required headers: ${e.message}")
+                }
+                is UnknownEventType -> {
+                    Pair(Metrics.EXCEPTION_UNKNOWN_TYPE, "Error parsing Record Key `${record.key()}`: Unknown Type encountered: ${e.message}")
+                }
+                else -> {
+                    Pair(Metrics.EXCEPTION_DESERIALIZATION, "Error parsing Record Key `${record.key()}`: Error: ${e.message}")
+                }
+            }
+
+            logger.error(e) { logMessage }
             meterRegistry
-                ?.counter(Metrics.EXCEPTION_MISSING_HEADER, "topic", record.topic(), KafkaHeaders.type, type ?: "null")
+                ?.counter(exceptionMetricName, "topic", record.topic(), KafkaHeaders.type, type)
                 ?.increment()
             reportException { recordHandlingException(record, e) }
             return null
-        }
-
-        return try {
-            when (val it = typeMap[type]) {
-                null -> {
-                    val e = UnknownEventType(record.key(), type)
-                    logger.warn(e) { "unknown type encountered: `${record.key()}`" }
-                    meterRegistry
-                        ?.counter(Metrics.EXCEPTION_UNKNOWN_TYPE, "topic", record.topic(), KafkaHeaders.type, type)
-                        ?.increment()
-                    reportException { recordHandlingException(record, e) }
-                    null
-                }
-
-                else -> toRoninEvent(headers, record.key(), record.value(), it)
-            }
-        } catch (e: Exception) {
-            logger.warn(e) { "exception parsing record: `${record.key()}`" }
-            meterRegistry
-                ?.counter(Metrics.EXCEPTION_DESERIALIZATION, "topic", record.topic())
-                ?.increment()
-            reportException { recordHandlingException(record, e) }
-            null
         }
     }
 

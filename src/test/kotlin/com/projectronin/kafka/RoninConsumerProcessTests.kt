@@ -247,7 +247,7 @@ class RoninConsumerProcessTests {
         assertEquals(1.0, metrics[RoninConsumer.Metrics.EXCEPTION_DESERIALIZATION].counter().count())
         assertThat(
             metrics.meters.find { it.id.name == RoninConsumer.Metrics.EXCEPTION_DESERIALIZATION }?.id?.tags,
-            containsInAnyOrder(ImmutableTag("topic", "topic"))
+            containsInAnyOrder(ImmutableTag("topic", "topic"), ImmutableTag("ce_type", "stuff"))
         )
         verify(exactly = 2) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
     }
