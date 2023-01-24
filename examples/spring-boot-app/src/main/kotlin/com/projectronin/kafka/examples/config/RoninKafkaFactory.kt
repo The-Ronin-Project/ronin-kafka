@@ -10,7 +10,12 @@ import com.projectronin.kafka.examples.data.Wing
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
 import io.micrometer.core.instrument.MeterRegistry
 import mu.KotlinLogging
+import org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG
+import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG
+import org.apache.kafka.common.config.SaslConfigs.SASL_MECHANISM
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -35,11 +40,11 @@ class RoninKafkaFactory(
                 "wing.flown" to Wing::class
             ),
             kafkaProperties = RoninConsumerKafkaProperties(
-                "bootstrap.servers" to servers,
-                "group.id" to group,
-                "security.protocol" to securityProtocol,
-                "sasl.mechanism" to saslMechanism,
-                "sasl.jaas.config" to saslJaasConfig,
+                BOOTSTRAP_SERVERS_CONFIG to servers,
+                GROUP_ID_CONFIG to group,
+                SECURITY_PROTOCOL_CONFIG to securityProtocol,
+                SASL_MECHANISM to saslMechanism,
+                SASL_JAAS_CONFIG to saslJaasConfig,
             ),
             exceptionHandler = object : ConsumerExceptionHandler {
                 private val logger = KotlinLogging.logger {}
@@ -67,10 +72,10 @@ class RoninKafkaFactory(
             source = "spring-boot-app",
             dataSchema = "https://schema",
             kafkaProperties = RoninProducerKafkaProperties(
-                "bootstrap.servers" to servers,
-                "security.protocol" to securityProtocol,
-                "sasl.mechanism" to saslMechanism,
-                "sasl.jaas.config" to saslJaasConfig,
+                BOOTSTRAP_SERVERS_CONFIG to servers,
+                SECURITY_PROTOCOL_CONFIG to securityProtocol,
+                SASL_MECHANISM to saslMechanism,
+                SASL_JAAS_CONFIG to saslJaasConfig,
             ),
             meterRegistry = meterRegistry
         )

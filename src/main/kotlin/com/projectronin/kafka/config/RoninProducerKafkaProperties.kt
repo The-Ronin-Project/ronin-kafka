@@ -1,5 +1,18 @@
 package com.projectronin.kafka.config
 
+import org.apache.kafka.clients.producer.ProducerConfig.ACKS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.BATCH_SIZE_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.BUFFER_MEMORY_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.COMPRESSION_TYPE_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.LINGER_MS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.MAX_BLOCK_MS_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION
+import org.apache.kafka.clients.producer.ProducerConfig.RETRIES_CONFIG
+import org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG
+import org.apache.kafka.common.record.CompressionType.SNAPPY
+import org.apache.kafka.common.serialization.ByteArraySerializer
+import org.apache.kafka.common.serialization.StringSerializer
 import java.nio.charset.StandardCharsets
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -17,19 +30,19 @@ class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
     val properties: Properties by lazy {
         Properties()
             .apply {
-                put("key.serializer.encoding", StandardCharsets.UTF_8.name())
-                put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-                put("value.serializer.encoding", StandardCharsets.UTF_8.name())
-                put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer")
-                put("acks", "all") // kafka default of all
+                put("$KEY_SERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
+                put(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.qualifiedName)
+                put("$VALUE_SERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
+                put(VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer::class.qualifiedName)
+                put(ACKS_CONFIG, "all") // kafka default of all
                 put("enable.idempotent", false)
-                put("retries", 3)
-                put("max.in.flight.requests.per.connection", 1)
-                put("buffer.memory", 32L * 1024L) // kafka default of 32MB
-                put("max.block.ms", TimeUnit.MINUTES.toMillis(1))
-                put("linger.ms", 5L)
-                put("batch.size", 16 * 1024) // kafka default of 16MB
-                put("compression.type", "snappy")
+                put(RETRIES_CONFIG, 3)
+                put(MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1) // kafka default is 5
+                put(BUFFER_MEMORY_CONFIG, 32L * 1024L) // kafka default of 32MB
+                put(MAX_BLOCK_MS_CONFIG, TimeUnit.MINUTES.toMillis(1))
+                put(LINGER_MS_CONFIG, 5L)
+                put(BATCH_SIZE_CONFIG, 16 * 1024) // kafka default of 16MB
+                put(COMPRESSION_TYPE_CONFIG, SNAPPY.name) // kafka default is "none"
                 putAll(configs)
             }
     }

@@ -1,5 +1,16 @@
 package com.projectronin.kafka.config
 
+import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import org.apache.kafka.common.serialization.StringDeserializer
 import java.nio.charset.StandardCharsets
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -17,21 +28,21 @@ class RoninConsumerKafkaProperties(vararg configs: Pair<String, *>) {
     val properties: Properties by lazy {
         Properties()
             .apply {
-                put("key.deserializer.encoding", StandardCharsets.UTF_8.name())
-                put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-                put("value.deserializer.encoding", StandardCharsets.UTF_8.name())
-                put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer")
+                put("$KEY_DESERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
+                put(KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.qualifiedName)
+                put("$VALUE_DESERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
+                put(VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer::class.qualifiedName)
 
-                put("enable.auto.commit", false)
-                put("auto.offset.reset", "earliest")
+                put(ENABLE_AUTO_COMMIT_CONFIG, false)
+                put(AUTO_OFFSET_RESET_CONFIG, "earliest") // kafka's default is "latest"
 
                 // kafka default of 500... set to 1 to only fetch a single record from kafka at a time
-                put("max.poll.records", 500)
-                put("fetch.max.wait.ms", TimeUnit.SECONDS.toMillis(1).toInt()) // kafka default is 500ms
-                put("fetch.min.bytes", 1) // kafka default of 1
+                put(MAX_POLL_RECORDS_CONFIG, 500)
+                put(FETCH_MAX_WAIT_MS_CONFIG, TimeUnit.SECONDS.toMillis(1).toInt()) // kafka default is 500ms
+                put(FETCH_MIN_BYTES_CONFIG, 1) // kafka default of 1
 
-                put("session.timeout.ms", TimeUnit.SECONDS.toMillis(45).toInt()) // kafka default of 45 sec
-                put("heartbeat.interval.ms", TimeUnit.SECONDS.toMillis(3).toInt()) // kafka default of 3 sec
+                put(SESSION_TIMEOUT_MS_CONFIG, TimeUnit.SECONDS.toMillis(45).toInt()) // kafka default of 45 sec
+                put(HEARTBEAT_INTERVAL_MS_CONFIG, TimeUnit.SECONDS.toMillis(3).toInt()) // kafka default of 3 sec
 
                 /**
                  * Number of times [com.projectronin.kafka.RoninConsumer] will re-send an event resulting in

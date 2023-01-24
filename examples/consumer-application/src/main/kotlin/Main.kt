@@ -7,6 +7,8 @@ import com.projectronin.kafka.examples.data.Wing
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
 import mu.KLogger
 import mu.KotlinLogging
+import org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG
+import org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import sun.misc.Signal
 
@@ -20,8 +22,8 @@ fun main() {
             "wing.flown" to Wing::class
         ),
         kafkaProperties = RoninConsumerKafkaProperties(
-            "bootstrap.servers" to "localhost:9092",
-            "group.id" to "processing-consumer-application",
+            BOOTSTRAP_SERVERS_CONFIG to "localhost:9092",
+            GROUP_ID_CONFIG to "processing-consumer-application",
         ),
         exceptionHandler = object : ConsumerExceptionHandler {
             override fun recordHandlingException(record: ConsumerRecord<String, ByteArray>, t: Throwable) {
