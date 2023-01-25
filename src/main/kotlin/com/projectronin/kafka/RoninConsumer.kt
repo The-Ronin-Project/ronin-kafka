@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.WakeupException
 import org.apache.kafka.common.header.Headers
 import java.time.Duration
 import java.time.Instant
@@ -70,6 +71,13 @@ class RoninConsumer(
         kafkaConsumer.subscribe(topics)
     }
 
+    companion object {
+        // default timeout on close event (normal kafka default is 30s, don't want to wait that long)
+        val DEFAULT_CLOSE_TIMEOUT_MS = Duration.ofMillis(10 * 1000)
+        // default timeout on kafka poll event
+        val DEFAULT_POLL_TIMEOUT: Duration = Duration.ofMillis(100)
+    }
+
     object Metrics {
         const val POLL_TIMER = "roninkafka.consumer.poll"
         const val POLL_MESSAGE_DISTRIBUTION = "roninkafka.consumer.poll.messages"
@@ -87,6 +95,7 @@ class RoninConsumer(
         const val HANDLER_UNHANDLED_EXCEPTION = "roninkafka.consumer.handler.unhandled_exception"
     }
 
+    @kotlin.Deprecated("process() is deprecated, and replaced with 'poll' and 'pollForever'")
     /**
      * Loop until [stop] is called to continuously fetch RoninEvents off of Kafka and pass each of them to a
      * processor function one at a time. Kafka offsets are committed after each successfully processed event.
@@ -106,6 +115,7 @@ class RoninConsumer(
      * @param handler The function that each [RoninEvent] should be passed to for processing. If the function returns
      *                  normally, processing is considered successful and the offset is committed. If an exception
      *                  is thrown
+     * @deprecated prcoess() is deprecated, and replaced with 'poll' and 'pollForever'
      */
     fun process(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
         status.set(Status.PROCESSING)
@@ -135,6 +145,83 @@ class RoninConsumer(
     }
 
     /**
+     * Execute a single Consumer Kafka 'poll'
+     *
+     * Exception scenarios:
+     *  * Kafka record missing required headers: logged, counted, and record skipped
+     *  * [RoninEvent.type] not included the [typeMap]: logged, counted, and record skipped
+     *  * Deserialization exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and exception
+     *                               are passed to the [errorHandler]
+     *  * Unhandled processing exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and
+     *                                    exception are passed to the [errorHandler]
+     *
+     * @param timeout Maximum amount of time to block while polling kafka. Default: 100ms
+     * @param handler The function that each [RoninEvent] should be passed to for processing. If the function returns
+     *                  normally, processing is considered successful and the offset is committed. If an exception
+     *                  is thrown
+     */
+    fun poll(timeout: Duration = DEFAULT_POLL_TIMEOUT, handler: (RoninEvent<*>) -> RoninEventResult) {
+        val start = System.currentTimeMillis()
+        try {
+            kafkaConsumer
+                .poll(timeout)
+                .also {
+                    // TODO: Should these tag with a list of topics? list of types?
+                    pollDistribution?.record(it.count().toDouble())
+                    pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+                }
+                .asSequence() // get a lazy sequence to facilitate exiting via the filter
+                .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
+                .forEach { record ->
+                    parseEvent(record)
+                        ?.let { handleEvent(record, it, handler) }
+                        .let { result ->
+                            // Commit if we couldn't parse (null) OR handleEvent returned true
+                            if (result != false) {
+                                commitRecordOffset(record)
+                            }
+                        }
+                }
+        } catch (e: WakeupException) {
+            // if got a wake-up exception, and we are stopped, then just close everything down.
+            // otherwise re-throw the exception
+            when (status.get()) {
+                Status.STOPPED -> kafkaConsumer.close(DEFAULT_CLOSE_TIMEOUT_MS)
+                else -> throw e
+            }
+        }
+    }
+
+    /**
+     * Loop until [stop] is called to continuously fetch RoninEvents off of Kafka and pass each of them to a
+     * processor function one at a time. Kafka offsets are committed after each successfully processed event.
+     *
+     * To stop processing messages and have this function return, call [stop]
+     *
+     * Exception scenarios:
+     *
+     *  * Kafka record missing required headers: logged, counted, and record skipped
+     *  * [RoninEvent.type] not included the [typeMap]: logged, counted, and record skipped
+     *  * Deserialization exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and exception
+     *                               are passed to the [errorHandler]
+     *  * Unhandled processing exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and
+     *                                    exception are passed to the [errorHandler]
+     *
+     * @param timeout Maximum amount of time to block while polling kafka. Default: 100ms
+     * @param handler The function that each [RoninEvent] should be passed to for processing. If the function returns
+     *                  normally, processing is considered successful and the offset is committed. If an exception
+     *                  is thrown
+     */
+    fun pollForever(timeout: Duration = DEFAULT_POLL_TIMEOUT, handler: (RoninEvent<*>) -> RoninEventResult) {
+        status.set(Status.PROCESSING)
+        // continue polling forever.  Call 'stop()' to halt
+        while (status() == Status.PROCESSING) {
+            poll(timeout = timeout, handler = handler)
+        }
+        logger.info { "Exiting processing" }
+    }
+
+    /**
      * Retrieve the current status of the [RoninConsumer]
      * @return [RoninConsumer.Status]
      */
@@ -147,6 +234,12 @@ class RoninConsumer(
     fun unsubscribe() {
         kafkaConsumer.unsubscribe()
     }
+
+    fun shutdown() {
+        status.set(Status.STOPPED)
+        kafkaConsumer.wakeup()
+    }
+
     /**
      * Commit the offset for the provided record
      * @param record The ConsumerRecord that should be committed as processed for this consumer group
@@ -173,7 +266,7 @@ class RoninConsumer(
     private fun handleEvent(
         record: ConsumerRecord<*, *>,
         event: RoninEvent<*>,
-        handler: (RoninEvent<*>) -> RoninEventResult
+        handler: (RoninEvent<*>) -> RoninEventResult,
     ): Boolean {
         try {
             (0..transientRetries).forEach { attempt ->
@@ -333,7 +426,7 @@ class RoninConsumer(
         headers: Map<String, String>,
         key: String,
         value: ByteArray,
-        valueClass: KClass<out Any>
+        valueClass: KClass<out Any>,
     ): RoninEvent<*> =
         RoninEvent(
             id = headers.getValue(KafkaHeaders.id),

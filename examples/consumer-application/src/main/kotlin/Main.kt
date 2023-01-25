@@ -45,7 +45,7 @@ fun main() {
 
     logger.info { "before consuming" }
     roninConsumer
-        .process {
+        .pollForever {
             logger.info { "got ${it.subject} [${it.id}]" }
             RoninEventResult.ACK
         }
