@@ -154,6 +154,39 @@ class RoninConsumerProcessHandlerTests {
     }
 
     @Test
+    fun `validate with custom retry attempts count`() {
+        // configure Consumer to do a bunch of retries and confirm it actually does it that many times.
+        val customRetryCount = 20
+        val customRetryRoninConsumer = RoninConsumer(
+            listOf("topic.1", "topic.2"),
+            mapOf("stuff" to Stuff::class),
+            kafkaConsumer = kafkaConsumer,
+            exceptionHandler = exceptionHandler,
+            meterRegistry = metrics,
+            kafkaProperties = RoninConsumerKafkaProperties("ronin.handler.transient.retries" to customRetryCount)
+        )
+
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
+            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+        )
+        every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
+
+        var counter = 0
+        customRetryRoninConsumer.process {
+            customRetryRoninConsumer.stop()
+            counter++
+            RoninEventResult.TRANSIENT_FAILURE
+        }
+        assertEquals((customRetryCount + 1), counter)
+
+        verify(exactly = 1) { kafkaConsumer.commitSync(mapOf(TopicPartition("topic", 1) to OffsetAndMetadata(43))) }
+        verify(exactly = 0) { exceptionHandler.recordHandlingException(any(), any()) }
+        verify(exactly = 1) { exceptionHandler.eventProcessingException(any(), any<TransientRetriesExhausted>()) }
+        assertEquals(counter, metrics[RoninConsumer.Metrics.HANDLER_TRANSIENT_FAILURE].counter().count().toInt())
+        assertEquals(1.0, metrics[RoninConsumer.Metrics.HANDLER_TRANSIENT_FAILURE_EXHAUSTED].counter().count())
+    }
+
+    @Test
     fun `PERMANENT_FAILURE calls exception handler, exits`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
             MockUtils.record(

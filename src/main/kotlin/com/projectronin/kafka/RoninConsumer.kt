@@ -56,7 +56,7 @@ class RoninConsumer(
 ) {
     private val logger = KotlinLogging.logger {}
     private val transientRetries: Int =
-        kafkaProperties.properties.getProperty("ronin.handler.transient.retries")?.toInt() ?: 3
+        kafkaProperties.properties.getValue("ronin.handler.transient.retries").toString().toInt()
     private var status = AtomicReference(Status.INITIALIZED)
 
     enum class Status { INITIALIZED, PROCESSING, STOPPED }
