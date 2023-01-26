@@ -11,12 +11,12 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
 
-interface HeadersExtractor<T> {
+fun  interface HeadersExtractor<T> {
     fun determineHeaders(value: T): RoninEventHeaders
 }
 
 // TODO: this should probably be a different interface for each header instead of 1, e.g. IdHeaderExtract.determineId
-interface HeaderExtractor<H, T> {
+fun  interface HeaderExtractor<H, T> {
     fun determineHeader(event: T): H
 }
 
@@ -69,7 +69,7 @@ class RoninKafkaSerializer<T>(
     override fun serialize(topic: String?, data: T): ByteArray = objectMapper.writeValueAsBytes(data)
 }
 
-interface KeyExtractor<T> {
+fun interface KeyExtractor<T> {
     fun determineKey(event: T): String?
 }
 
