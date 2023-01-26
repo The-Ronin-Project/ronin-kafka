@@ -1,6 +1,7 @@
 package com.projectronin.kafka.strawman.producer
 
 import com.projectronin.kafka.config.RoninProducerKafkaProperties
+import com.projectronin.kafka.data.RoninEvent
 import java.lang.IllegalStateException
 
 data class Patient(val id: String, val name: String)
@@ -39,13 +40,29 @@ data class PatientEventV1(
     }
 }
 
-fun magicProducerExample() {
-    // This would be a bean in your spring config somewhere
-    // and likely wrapped up in a ronin-kafka-spring module eventually to get autowired
-    val producerFactory = RoninKafkaProducerFactory(
-        RoninProducerKafkaProperties("bootstrap.servers" to "localhost:9092"), RoninKafkaSerializerFactory()
-    )
+// This would be a bean in your spring config somewhere
+// and likely wrapped up in a ronin-kafka-spring module eventually to get autowired
+val producerFactory = RoninKafkaProducerFactory(
+    RoninProducerKafkaProperties("bootstrap.servers" to "localhost:9092"), RoninKafkaSerializerFactory()
+)
 
+// This example is pretty minimal. It just knows how to write a RoninEvent, and otherwise isn't really doing much under
+// the hood.
+fun eventProducerExample() {
+    val producer = producerFactory.createRoninEventProducer("emr.patient.v1", PatientEventV1::class)
+
+    val event = PatientEventV1(create = Patient("123", "Corbin"))
+    // do the tedious wrapping of a PatientEvent into a RoninEvent envelope
+    val roninEvent: RoninEvent<PatientEventV1> = TODO()
+
+    producer.send(event.patientId(), roninEvent)
+}
+
+
+// This example is the "most magic" option, basically. This assumes that the pattern we would have of making custom little
+// PatientProducer, ObservationProducer, etc has been abstracted out to be able to make those in a pluggable way instead
+// of making one from scratch each time.
+fun magicProducerExample() {
     // This would be a bean in your service's spring config
     val patientProducer = producerFactory.createRoninProducer(
         topic = "emr.patient.v1",
