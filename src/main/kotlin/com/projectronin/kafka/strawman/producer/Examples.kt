@@ -24,6 +24,19 @@ data class PatientEventV1(
         }
         throw IllegalStateException()
     }
+
+    fun type(): String {
+        if (create != null) {
+            return "create"
+        }
+        if (update != null) {
+            return "update"
+        }
+        if (delete != null) {
+            return "delete"
+        }
+        throw IllegalStateException()
+    }
 }
 
 fun magicProducerExample() {
@@ -38,7 +51,7 @@ fun magicProducerExample() {
         topic = "emr.patient.v1",
         type = PatientEventV1::class,
         keyExtractor = KeyExtractor { p -> p.patientId() },
-        typeExtractor = HeaderExtractor { p -> "create" },
+        typeExtractor = HeaderExtractor { p -> p.type() },
         sourceExtractor = StaticValueExtractor("some-service"),
         schemaExtractor = StaticValueExtractor("patient/schema/v1/2023-01-26-sha"),
         subjectExtractor = HeaderExtractor { p -> "RoninPatient/${p.patientId()}" }
