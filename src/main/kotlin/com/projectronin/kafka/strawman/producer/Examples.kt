@@ -50,11 +50,21 @@ fun magicProducerExample() {
     val patientProducer = producerFactory.createRoninProducer(
         topic = "emr.patient.v1",
         type = PatientEventV1::class,
+        // these 3 would likely always need to be specified, short of an uncomfortable amount of magic
         keyExtractor = KeyExtractor { p -> p.patientId() },
         typeExtractor = HeaderExtractor { p -> p.type() },
+        subjectExtractor = HeaderExtractor { p -> "RoninPatient/${p.patientId()}" },
+        // But these I think would eventually become magic. I think the source would just integrate with Spring Boot
+        // or whatever and automatically become the Spring Boot service name. Or maybe it'd be the docker image url,
+        // or who knows what -- but this should totally be able to just be a StandardSource() instance as a default.
         sourceExtractor = StaticValueExtractor("some-service"),
+        // This I think would require some changes on the json schema gradle plugin side, but I'd like to see this be
+        // introspectable from the class/instances. Like a SchemaVersionExtractor() instance that can look at a
+        // PatientEventV1 instance and grab a static SCHEMA_VERSION field on it with reflection or something. Just in
+        // general, the generated models are the authority of what this version is, so I don't want it to ever be
+        // hard coded or config (unless that config _also_ controls what version of the schema is used, so the two are
+        // always the same)
         schemaExtractor = StaticValueExtractor("patient/schema/v1/2023-01-26-sha"),
-        subjectExtractor = HeaderExtractor { p -> "RoninPatient/${p.patientId()}" }
     )
 
     // Then where ever in your code, you can inject the patient producer and just throw patient events at it
