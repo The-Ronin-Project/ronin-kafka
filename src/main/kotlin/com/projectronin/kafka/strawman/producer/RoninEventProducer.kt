@@ -9,7 +9,6 @@ import org.apache.kafka.clients.producer.RecordMetadata
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Future
 
-
 /**
  * This is an example of a medium amount of an opinionated option. Everything is still fairly manual, like specifying
  * the key, building the RoninEvent, etc, but it's limited to a single type and topic and the caller doesn't have to deal

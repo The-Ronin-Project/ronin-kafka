@@ -58,7 +58,6 @@ fun eventProducerExample() {
     producer.send(event.patientId(), roninEvent)
 }
 
-
 // This example is the "most magic" option, basically. This assumes that the pattern we would have of making custom little
 // PatientProducer, ObservationProducer, etc has been abstracted out to be able to make those in a pluggable way instead
 // of making one from scratch each time.

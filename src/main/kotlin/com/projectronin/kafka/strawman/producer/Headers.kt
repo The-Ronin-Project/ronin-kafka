@@ -5,18 +5,19 @@ import com.projectronin.kafka.config.MapperFactory
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.StringHeader
+import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.serialization.Serializer
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.UUID
 import kotlin.reflect.KClass
 
-fun  interface HeadersExtractor<T> {
+fun interface HeadersExtractor<T> {
     fun determineHeaders(value: T): RoninEventHeaders
 }
 
 // TODO: this should probably be a different interface for each header instead of 1, e.g. IdHeaderExtract.determineId
-fun  interface HeaderExtractor<H, T> {
+fun interface HeaderExtractor<H, T> {
     fun determineHeader(event: T): H
 }
 
@@ -34,6 +35,26 @@ data class RoninEventHeaders(
         fun fromEvent(event: RoninEvent<*>) = RoninEventHeaders(
             event.id, event.time, event.specVersion, event.dataSchema, event.dataContentType, event.source, event.type, event.subject
         )
+        fun fromHeaders(rawHeaders: Headers): RoninEventHeaders {
+            val headers = rawHeaders
+                .filter { it.value() != null && it.value().isNotEmpty() }
+                .associate { it.key() to it.value().decodeToString() }
+
+            // TODO: validate headers
+
+            return RoninEventHeaders(
+                id = headers.getValue(KafkaHeaders.id),
+                time = Instant.parse(headers.getValue(KafkaHeaders.time)),
+                specVersion = headers.getValue(KafkaHeaders.specVersion),
+                dataSchema = headers.getValue(KafkaHeaders.dataSchema),
+                dataContentType = headers.getValue(KafkaHeaders.contentType),
+                source = headers.getValue(KafkaHeaders.source),
+                type = headers.getValue(KafkaHeaders.type),
+                // TODO: why is there no subject constant?
+                // subject = headers.getValue(KafkaHeaders.subject),
+                subject = ""
+            )
+        }
     }
 
     fun toHeaders() = listOf(
@@ -43,7 +64,20 @@ data class RoninEventHeaders(
         StringHeader(KafkaHeaders.type, type),
         StringHeader(KafkaHeaders.contentType, dataContentType),
         StringHeader(KafkaHeaders.dataSchema, dataSchema),
+        // TODO: why is there no subject constant? StringHeader(KafkaHeaders.subject, subject),
         StringHeader(KafkaHeaders.time, DateTimeFormatter.ISO_INSTANT.format(time)),
+    )
+
+    fun <T> toEvent(body: T) = RoninEvent(
+        id = id,
+        source = source,
+        specVersion = specVersion,
+        type = type,
+        dataContentType = dataContentType,
+        dataSchema = dataSchema,
+        time = time,
+        subject = subject,
+        data = body
     )
 }
 

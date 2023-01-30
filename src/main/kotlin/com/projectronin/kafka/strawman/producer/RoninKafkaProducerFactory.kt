@@ -89,4 +89,3 @@ class RoninKafkaProducerFactory(
         schemaExtractor = StaticValueExtractor(schema),
     )
 }
-
