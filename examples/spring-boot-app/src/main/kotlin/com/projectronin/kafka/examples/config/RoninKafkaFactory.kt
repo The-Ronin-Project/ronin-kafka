@@ -49,12 +49,22 @@ class RoninKafkaFactory(
             exceptionHandler = object : ConsumerExceptionHandler {
                 private val logger = KotlinLogging.logger {}
 
-                override fun recordHandlingException(record: ConsumerRecord<String, ByteArray>, t: Throwable) {
+                override fun recordHandlingException(record: ConsumerRecord<String, *>, t: Throwable) {
                     logger.error(t) { "Failed to parse kafka record into a RoninEvent! - $record" }
                     // do something useful with the record
                 }
 
                 override fun eventProcessingException(events: List<RoninEvent<*>>, t: Throwable) {
+                    logger.error(t) { "Unhandled exception while processing events!" }
+                    // do something useful with the event(s). Dead letter queue?
+                }
+
+                override fun pollException(t: Throwable) {
+                    logger.error(t) { "Unhandled exception while processing events!" }
+                    // do something useful with the event(s). Dead letter queue?
+                }
+
+                override fun deserializationException(t: Throwable) {
                     logger.error(t) { "Unhandled exception while processing events!" }
                     // do something useful with the event(s). Dead letter queue?
                 }
@@ -67,7 +77,7 @@ class RoninKafkaFactory(
         @Value("\${send.topic}") topic: String,
         meterRegistry: MeterRegistry,
     ) =
-        RoninProducer(
+        RoninProducer<Van>(
             topic = topic,
             source = "spring-boot-app",
             dataSchema = "https://schema",

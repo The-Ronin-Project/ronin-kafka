@@ -1,6 +1,7 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.data.KafkaHeaders
+import com.projectronin.kafka.data.RoninEvent
 import io.mockk.every
 import io.mockk.mockk
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -12,22 +13,22 @@ object MockUtils {
         override fun value() = value.toByteArray()
     }
 
-    fun record(type: String, key: String, value: String): ConsumerRecord<String, ByteArray> {
+    fun record(type: String, key: String, value: RoninEvent<*>): ConsumerRecord<String, RoninEvent<*>> {
         return mockk {
             every { topic() } returns "topic"
             every { partition() } returns 1
             every { offset() } returns 42
             every { key() } returns key
-            every { value() } returns value.toByteArray()
+            every { value() } returns value
             every { headers() } returns mockk {
                 val h = mutableListOf(
-                    Header(KafkaHeaders.id, "1"),
-                    Header(KafkaHeaders.time, "2022-08-08T23:06:40Z"),
-                    Header(KafkaHeaders.specVersion, "3"),
-                    Header(KafkaHeaders.dataSchema, "4"),
-                    Header(KafkaHeaders.contentType, "5"),
-                    Header(KafkaHeaders.source, "6"),
-                    Header(KafkaHeaders.type, type),
+                    Header(KafkaHeaders.id, value.id),
+                    Header(KafkaHeaders.time, value.time.toString()),
+                    Header(KafkaHeaders.specVersion, value.specVersion),
+                    Header(KafkaHeaders.dataSchema, value.dataSchema),
+                    Header(KafkaHeaders.contentType, value.dataContentType),
+                    Header(KafkaHeaders.source, value.source),
+                    Header(KafkaHeaders.type, value.type),
                 )
                 every { iterator() } returns h.iterator()
             }
@@ -35,7 +36,7 @@ object MockUtils {
         }
     }
 
-    fun records(vararg records: ConsumerRecord<String, ByteArray>): ConsumerRecords<String, ByteArray> = mockk {
+    fun records(vararg records: ConsumerRecord<String, RoninEvent<*>>): ConsumerRecords<String, RoninEvent<*>> = mockk {
         mutableListOf(*records).let {
             every { iterator() } returns it.iterator()
             every { count() } returns records.size

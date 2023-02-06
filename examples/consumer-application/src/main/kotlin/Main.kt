@@ -12,21 +12,23 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import sun.misc.Signal
 
-fun main() {
+fun main(args: Array<String>) {
+    val bootstrapServer = if (args.isNotEmpty()) args[0] else "localhost:31090"
+
     val logger: KLogger = KotlinLogging.logger { }
+    val typeMap = mapOf(
+        "van.cruising" to Van::class, "wing.flown" to Wing::class
+    )
 
     val roninConsumer = RoninConsumer(
         topics = listOf("local.us.ronin-kafka.rides.v1"),
-        typeMap = mapOf(
-            "van.cruising" to Van::class,
-            "wing.flown" to Wing::class
-        ),
+        typeMap,
         kafkaProperties = RoninConsumerKafkaProperties(
-            BOOTSTRAP_SERVERS_CONFIG to "localhost:9092",
+            BOOTSTRAP_SERVERS_CONFIG to bootstrapServer,
             GROUP_ID_CONFIG to "processing-consumer-application",
         ),
         exceptionHandler = object : ConsumerExceptionHandler {
-            override fun recordHandlingException(record: ConsumerRecord<String, ByteArray>, t: Throwable) {
+            override fun recordHandlingException(record: ConsumerRecord<String, *>, t: Throwable) {
                 logger.error(t) { "Failed to parse kafka record into a RoninEvent! - $record" }
                 // do something useful with the record
             }
@@ -34,6 +36,14 @@ fun main() {
             override fun eventProcessingException(events: List<RoninEvent<*>>, t: Throwable) {
                 logger.error(t) { "Unhandled exception while processing events!" }
                 // do something useful with the event(s). Dead letter queue?
+            }
+
+            override fun pollException(t: Throwable) {
+                TODO("Not yet implemented")
+            }
+
+            override fun deserializationException(t: Throwable) {
+                TODO("Not yet implemented")
             }
         }
     )
@@ -44,10 +54,9 @@ fun main() {
     }
 
     logger.info { "before consuming" }
-    roninConsumer
-        .process {
-            logger.info { "got ${it.subject} [${it.id}]" }
-            RoninEventResult.ACK
-        }
+    roninConsumer.process {
+        logger.info { "got ${it.subject} [${it.id}]" }
+        RoninEventResult.ACK
+    }
     logger.info { "done consuming" }
 }

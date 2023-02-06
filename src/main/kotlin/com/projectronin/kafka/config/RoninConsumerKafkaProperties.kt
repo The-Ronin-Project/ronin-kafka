@@ -1,5 +1,6 @@
 package com.projectronin.kafka.config
 
+import com.projectronin.kafka.serde.RoninEventDeserializer
 import org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG
@@ -9,7 +10,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_C
 import org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
-import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import java.nio.charset.StandardCharsets
 import java.util.Properties
@@ -31,7 +31,7 @@ class RoninConsumerKafkaProperties(vararg configs: Pair<String, *>) {
                 put("$KEY_DESERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
                 put(KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.qualifiedName)
                 put("$VALUE_DESERIALIZER_CLASS_CONFIG.encoding", StandardCharsets.UTF_8.name())
-                put(VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer::class.qualifiedName)
+                put(VALUE_DESERIALIZER_CLASS_CONFIG, RoninEventDeserializer::class.qualifiedName)
 
                 put(ENABLE_AUTO_COMMIT_CONFIG, false)
                 put(AUTO_OFFSET_RESET_CONFIG, "earliest") // kafka's default is "latest"

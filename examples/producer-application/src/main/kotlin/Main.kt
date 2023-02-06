@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
-fun Wing.toEvent(type: String): RoninEvent<Wing> =
+fun Wing.toEvent(type: String): RoninEvent<Any> =
     RoninEvent(
         source = "ronin-kafka-examples",
         dataSchema = "https://not-a-schema",
@@ -18,13 +18,15 @@ fun Wing.toEvent(type: String): RoninEvent<Wing> =
         subject = "wing/$id",
     )
 
-fun main() {
+fun main(args: Array<String>) {
+    val bootstrapServer = if (args.isNotEmpty()) args[0] else "localhost:31090"
+
     val roninProducer =
-        RoninProducer(
+        RoninProducer<Any>(
             topic = "local.us.ronin-kafka.rides.v1",
             source = "producer-application",
             dataSchema = "https://schema",
-            kafkaProperties = RoninProducerKafkaProperties(BOOTSTRAP_SERVERS_CONFIG to "localhost:9092")
+            kafkaProperties = RoninProducerKafkaProperties(BOOTSTRAP_SERVERS_CONFIG to bootstrapServer)
         )
 
     val formatter = DateTimeFormatter.ofPattern("E-A")

@@ -75,7 +75,7 @@ A minimal `RoninProducer` creation would look something like this:
 
 ```kotlin
 val roninProducer =
-    RoninProducer(
+    RoninProducer<Wing>(
         topic = "local.us.your-system.your-event-type.v1",
         source = "your-producer-application",
         dataSchema = "https://link-to-your-json-schema",

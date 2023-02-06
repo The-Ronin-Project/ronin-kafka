@@ -1,6 +1,7 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
+import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import io.mockk.Runs
 import io.mockk.every
@@ -17,7 +18,7 @@ import java.time.Duration
 class RoninConsumerStatusTests {
     data class Stuff(val id: String)
 
-    private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
+    private val kafkaConsumer = mockk<KafkaConsumer<String, RoninEvent<*>>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
         every { commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) } returns Unit
     }
@@ -42,9 +43,36 @@ class RoninConsumerStatusTests {
     @Test
     fun `processing and stopped`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = RoninConsumerProcessTests.Stuff("one")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "key1.2",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.2",
+                    data = RoninConsumerProcessTests.Stuff("two")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "last",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "last",
+                    data = RoninConsumerProcessTests.Stuff("three")
+                )
+            ),
         )
 
         var inProcessStatus: RoninConsumer.Status = RoninConsumer.Status.INITIALIZED

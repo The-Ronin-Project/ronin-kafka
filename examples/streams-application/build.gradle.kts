@@ -11,6 +11,7 @@ dependencies {
     implementation(rootProject)
     implementation(project(":examples:data"))
 
+    implementation(libs.kafka.streams)
     implementation(libs.kotlin.stdlib)
     implementation(libs.microutils.kotlin.logging)
 

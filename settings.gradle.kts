@@ -4,4 +4,5 @@ include(
     "examples:consumer-application",
     "examples:producer-application",
     "examples:spring-boot-app",
+    "examples:streams-application",
 )

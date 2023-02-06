@@ -1,7 +1,6 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninProducerKafkaProperties
-import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import io.micrometer.core.instrument.ImmutableTag
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
@@ -14,18 +13,18 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.header.Headers
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
 
 class RoninProducerTests {
-    private val kafkaProducer = mockk<KafkaProducer<String, ByteArray>>()
+    data class Stuff(val id: Int)
+
+    private val kafkaProducer = mockk<KafkaProducer<String, RoninEvent<Stuff>>>()
     private val metrics = SimpleMeterRegistry()
     private val roninProducer = RoninProducer(
         "topic",
@@ -37,11 +36,9 @@ class RoninProducerTests {
     )
     private val fixedInstant = Instant.ofEpochSecond(1660000000)
 
-    private fun Headers.getString(key: String) = this.lastHeader(key).value().decodeToString()
-
     @Test
     fun `send RoninEvent - success`() {
-        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val recordSlot = slot<ProducerRecord<String, RoninEvent<Stuff>>>()
         val metadata = mockk<RecordMetadata>()
         every { kafkaProducer.send(capture(recordSlot), any()) } answers {
             val block = secondArg<Callback>()
@@ -62,9 +59,7 @@ class RoninProducerTests {
                     source = "tests",
                     type = "dummy",
                     subject = "subject",
-                    data = object {
-                        val id: Int = 3
-                    }
+                    data = Stuff(3)
                 )
             )
 
@@ -73,14 +68,7 @@ class RoninProducerTests {
             assertEquals("topic", topic())
             assertNull(partition())
             assertEquals("subject", key())
-            assertEquals("{\"id\":3}", value().decodeToString())
-            assertEquals("1", headers().getString("ce_id"))
-            assertEquals("tests", headers().getString("ce_source"))
-            assertEquals("4.2", headers().getString("ce_specversion"))
-            assertEquals("dummy", headers().getString("ce_type"))
-            assertEquals("stuff", headers().getString("content-type"))
-            assertEquals("le-schema", headers().getString("ce_dataschema"))
-            assertEquals("2022-08-08T23:06:40Z", headers().getString("ce_time"))
+            assertEquals(3, value().data.id)
         }
         assertEquals(metadata, response.get())
 
@@ -107,7 +95,7 @@ class RoninProducerTests {
             kafkaProducer = kafkaProducer,
             kafkaProperties = RoninProducerKafkaProperties()
         )
-        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val recordSlot = slot<ProducerRecord<String, RoninEvent<Stuff>>>()
         val metadata = mockk<RecordMetadata>()
         every { kafkaProducer.send(capture(recordSlot), any()) } answers {
             val block = secondArg<Callback>()
@@ -128,9 +116,7 @@ class RoninProducerTests {
                     source = "tests",
                     type = "dummy",
                     subject = "subject",
-                    data = object {
-                        val id: Int = 3
-                    }
+                    data = Stuff(3)
                 )
             )
 
@@ -139,21 +125,14 @@ class RoninProducerTests {
             assertEquals("topic", topic())
             assertNull(partition())
             assertEquals("subject", key())
-            assertEquals("{\"id\":3}", value().decodeToString())
-            assertEquals("1", headers().getString(KafkaHeaders.id))
-            assertEquals("tests", headers().getString(KafkaHeaders.source))
-            assertEquals("4.2", headers().getString(KafkaHeaders.specVersion))
-            assertEquals("dummy", headers().getString(KafkaHeaders.type))
-            assertEquals("stuff", headers().getString(KafkaHeaders.contentType))
-            assertEquals("le-schema", headers().getString(KafkaHeaders.dataSchema))
-            assertEquals("2022-08-08T23:06:40Z", headers().getString(KafkaHeaders.time))
+            assertEquals(3, value().data.id)
         }
         assertEquals(metadata, response.get())
     }
 
     @Test
     fun `send RoninEvent_Data - failure`() {
-        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val recordSlot = slot<ProducerRecord<String, RoninEvent<Stuff>>>()
         val metadata = mockk<RecordMetadata>()
         every { kafkaProducer.send(capture(recordSlot), any()) } answers {
             val block = secondArg<Callback>()
@@ -167,9 +146,7 @@ class RoninProducerTests {
             .send(
                 type = "dummy",
                 subject = "subject",
-                data = object {
-                    val id: Int = 3
-                }
+                data = Stuff(3)
             )
 
         verify(exactly = 1) { kafkaProducer.send(any(), any()) }
@@ -177,14 +154,7 @@ class RoninProducerTests {
             assertEquals("topic", topic())
             assertNull(partition())
             assertEquals("subject", key())
-            assertEquals("{\"id\":3}", value().decodeToString())
-            assertNotNull(headers().getString(KafkaHeaders.id))
-            assertEquals("source", headers().getString(KafkaHeaders.source))
-            assertEquals("1.0", headers().getString(KafkaHeaders.specVersion))
-            assertEquals("dummy", headers().getString(KafkaHeaders.type))
-            assertEquals("application/json", headers().getString(KafkaHeaders.contentType))
-            assertEquals("dataschema", headers().getString(KafkaHeaders.dataSchema))
-            assertNotNull(headers().getString(KafkaHeaders.time))
+            assertEquals(3, value().data.id)
         }
         assertEquals(metadata, response.get())
 

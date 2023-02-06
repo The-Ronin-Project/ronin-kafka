@@ -8,6 +8,7 @@ kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
 kotlinx-coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
 microutils-kotlin-logging = { module = "io.github.microutils:kotlin-logging-jvm", version = "2.1.23" }
 kafka = { module = "org.apache.kafka:kafka-clients", version = "3.2.1" }
+kafka-streams = { module = "org.apache.kafka:kafka-streams", version = "3.2.1" }
 jackson = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 jackson-datatype-jdk8 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jdk8", version.ref = "jackson" }

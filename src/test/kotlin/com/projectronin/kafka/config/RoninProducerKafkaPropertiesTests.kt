@@ -15,7 +15,7 @@ class RoninProducerKafkaPropertiesTests {
         assertTrue(properties.containsKey("value.serializer.encoding"))
         assertTrue(properties.containsKey("value.serializer"))
         assertTrue(properties.containsKey("acks"))
-        assertTrue(properties.containsKey("enable.idempotent"))
+        assertTrue(properties.containsKey("enable.idempotence"))
         assertTrue(properties.containsKey("retries"))
         assertTrue(properties.containsKey("max.in.flight.requests.per.connection"))
         assertTrue(properties.containsKey("buffer.memory"))

@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Component
-class ProducerScheduledJob(private val producer: RoninProducer) {
+class ProducerScheduledJob(private val producer: RoninProducer<Van>) {
     private val logger: KLogger = KotlinLogging.logger { }
     private val formatter = DateTimeFormatter.ofPattern("E-A")
 

@@ -3,9 +3,7 @@ package com.projectronin.kafka
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.projectronin.kafka.config.MapperFactory
 import com.projectronin.kafka.config.RoninProducerKafkaProperties
-import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
-import com.projectronin.kafka.data.StringHeader
 import io.micrometer.core.instrument.MeterRegistry
 import mu.KLogger
 import mu.KotlinLogging
@@ -31,7 +29,7 @@ import java.util.concurrent.TimeUnit
  * @property kafkaProducer [KafkaProducer] instance to use for sending kafka records
  * @constructor Creates a kafka producer for RoninEvents
  */
-open class RoninProducer(
+open class RoninProducer<T>(
     val topic: String,
     val source: String,
     val dataSchema: String,
@@ -39,7 +37,7 @@ open class RoninProducer(
     val specVersion: String = "1.0",
     val dataContentType: String = "application/json",
     val mapper: ObjectMapper = MapperFactory.mapper,
-    val kafkaProducer: KafkaProducer<String, ByteArray> = KafkaProducer<String, ByteArray>(kafkaProperties.properties),
+    val kafkaProducer: KafkaProducer<String, RoninEvent<T>> = KafkaProducer<String, RoninEvent<T>>(kafkaProperties.properties),
     val meterRegistry: MeterRegistry? = null
 ) {
     private val instantFormatter = DateTimeFormatter.ISO_INSTANT
@@ -59,13 +57,12 @@ open class RoninProducer(
      * Send an [event] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <T> send(event: RoninEvent<T>): Future<RecordMetadata> {
+    fun send(event: RoninEvent<T>): Future<RecordMetadata> {
         val record = ProducerRecord(
             topic,
             null, // partition
             event.subject, // key
-            mapper.writeValueAsBytes(event.data), // value
-            recordHeaders(event)
+            event, // value
         )
         logger.debug { "payload: ${record.value()}" }
 
@@ -99,7 +96,7 @@ open class RoninProducer(
      * Send [data] with the given [type] and [subject] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <T> send(type: String, subject: String, data: T): Future<RecordMetadata> =
+    fun send(type: String, subject: String, data: T): Future<RecordMetadata> =
         send(
             RoninEvent(
                 dataSchema = dataSchema,
@@ -122,19 +119,4 @@ open class RoninProducer(
             ?.timer(Metrics.FLUSH_TIMER)
             ?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
     }
-
-    /**
-     * translate [event] into a list of headers for a kafka record
-     * @return list of StringHeader
-     */
-    private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> =
-        listOf(
-            StringHeader(KafkaHeaders.id, event.id),
-            StringHeader(KafkaHeaders.source, event.source),
-            StringHeader(KafkaHeaders.specVersion, event.specVersion),
-            StringHeader(KafkaHeaders.type, event.type),
-            StringHeader(KafkaHeaders.contentType, event.dataContentType),
-            StringHeader(KafkaHeaders.dataSchema, event.dataSchema),
-            StringHeader(KafkaHeaders.time, instantFormatter.format(event.time)),
-        )
 }

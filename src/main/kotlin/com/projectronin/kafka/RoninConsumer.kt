@@ -7,21 +7,24 @@ import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
+import com.projectronin.kafka.exceptions.DeserializationException
 import com.projectronin.kafka.exceptions.EventHeaderMissing
 import com.projectronin.kafka.exceptions.TransientRetriesExhausted
 import com.projectronin.kafka.exceptions.UnknownEventType
+import com.projectronin.kafka.serde.RoninEventDeserializer.Companion.RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG
 import io.micrometer.core.instrument.DistributionSummary
 import io.micrometer.core.instrument.MeterRegistry
 import mu.KotlinLogging
+import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.header.Headers
 import java.time.Duration
-import java.time.Instant
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import javax.lang.model.type.UnknownTypeException
 import kotlin.reflect.KClass
 
 /**
@@ -42,10 +45,12 @@ import kotlin.reflect.KClass
  */
 class RoninConsumer(
     val topics: List<String>,
-    val typeMap: Map<String, KClass<*>>,
+    val typeMap: Map<String, KClass<out Any>>,
     val kafkaProperties: RoninConsumerKafkaProperties,
     private val mapper: ObjectMapper = MapperFactory.mapper,
-    private val kafkaConsumer: KafkaConsumer<String, ByteArray> = KafkaConsumer(kafkaProperties.properties),
+    private val kafkaConsumer: Consumer<String, RoninEvent<*>> = KafkaConsumer(
+        kafkaProperties.properties.appendMap(typeMap)
+    ),
     private val exceptionHandler: ConsumerExceptionHandler? = null,
     val meterRegistry: MeterRegistry? = null
 ) {
@@ -79,6 +84,7 @@ class RoninConsumer(
         const val EXCEPTION_UNKNOWN_TYPE = "roninkafka.consumer.exceptions.unknowntype"
         const val EXCEPTION_MISSING_HEADER = "roninkafka.consumer.exceptions.missingheader"
         const val EXCEPTION_DESERIALIZATION = "roninkafka.consumer.exceptions.deserialization"
+        const val EXCEPTION_POLL = "roninkafka.consumer.exceptions.poll"
 
         const val HANDLER_ACK = "roninkafka.consumer.handler.ack"
         const val HANDLER_TRANSIENT_FAILURE = "roninkafka.consumer.handler.transient_failure"
@@ -110,26 +116,52 @@ class RoninConsumer(
     fun process(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
         status.set(Status.PROCESSING)
         while (status() == Status.PROCESSING) {
-            val start = System.currentTimeMillis()
-            kafkaConsumer
-                .poll(timeout)
-                .also {
-                    // TODO: Should these tag with a list of topics? list of types?
-                    pollDistribution?.record(it.count().toDouble())
-                    pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
-                }
-                .asSequence() // get a lazy sequence to facilitate exiting via the filter
-                .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
-                .forEach { record ->
-                    parseEvent(record)
-                        ?.let { handleEvent(record, it, handler) }
-                        .let { result ->
-                            // Commit if we couldn't parse (null) OR handleEvent returned true
-                            if (result != false) {
-                                commitRecordOffset(record)
+            try {
+                val start = System.currentTimeMillis()
+                kafkaConsumer
+                    .poll(timeout)
+                    .also {
+                        // TODO: Should these tag with a list of topics? list of types?
+                        pollDistribution?.record(it.count().toDouble())
+                        pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+                    }
+                    .asSequence() // get a lazy sequence to facilitate exiting via the filter
+                    .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
+                    .forEach { record ->
+                        parseEvent(record)
+                            ?.let { handleEvent(record, it, handler) }
+                            .let { result ->
+                                // Commit if we couldn't parse (null) OR handleEvent returned true
+                                if (result != false) {
+                                    commitRecordOffset(record)
+                                }
                             }
-                        }
-                }
+                    }
+            } catch (e: DeserializationException) {
+                logger.warn(e) { "exception parsing record" }
+                meterRegistry
+                    ?.counter(Metrics.EXCEPTION_DESERIALIZATION)
+                    ?.increment()
+                reportException { deserializationException(e) }
+            } catch (e: UnknownTypeException) {
+                logger.warn(e) { "unknown type encountered" }
+                meterRegistry
+                    ?.counter(Metrics.EXCEPTION_UNKNOWN_TYPE)
+                    ?.increment()
+                reportException { pollException(e) }
+            } catch (e: EventHeaderMissing) {
+                logger.warn(e) { "record missing required headers: `${e.topic}`" }
+                meterRegistry
+                    ?.counter(Metrics.EXCEPTION_MISSING_HEADER, "topic", e.topic, KafkaHeaders.type, "null")
+                    ?.increment()
+                reportException { pollException(e) }
+            } catch (e: Exception) {
+                logger.warn(e) { "exception when attempting to poll Kafka: `$e`" }
+                meterRegistry
+                    ?.counter(Metrics.EXCEPTION_POLL)
+                    ?.increment()
+                reportException { pollException(e) }
+            }
         }
         logger.info { "Exiting processing" }
     }
@@ -147,6 +179,7 @@ class RoninConsumer(
     fun unsubscribe() {
         kafkaConsumer.unsubscribe()
     }
+
     /**
      * Commit the offset for the provided record
      * @param record The ConsumerRecord that should be committed as processed for this consumer group
@@ -258,94 +291,27 @@ class RoninConsumer(
      * @return the [RoninEvent] equivalent of the provided [ConsumerRecord]
      * @throws UnknownEventType when the record's ce_type header value isn't found in [typeMap]
      */
-    private fun parseEvent(record: ConsumerRecord<String, ByteArray>): RoninEvent<*>? {
-        val headers = parseHeaders(record.headers())
-        val type = headers[KafkaHeaders.type] ?: "null"
-
+    private fun parseEvent(record: ConsumerRecord<String, RoninEvent<*>>): RoninEvent<*>? {
         meterRegistry
-            ?.timer(Metrics.MESSAGE_QUEUE_TIMER, "topic", record.topic(), KafkaHeaders.type, type)
+            ?.timer(Metrics.MESSAGE_QUEUE_TIMER, "topic", record.topic(), KafkaHeaders.type, record.value().type)
             ?.record(System.currentTimeMillis() - record.timestamp(), TimeUnit.MILLISECONDS)
 
-        try {
-            validateHeaders(headers)
-            val valueClass = typeMap[type] ?: throw UnknownEventType(record.key(), type)
-            return toRoninEvent(headers, record.key(), record.value(), valueClass)
-        } catch (e: Exception) {
-            // determine metric and logMessage to record based on the exception.
-            val (exceptionMetricName, logMessage) = when (e) {
-                is EventHeaderMissing -> {
-                    Pair(Metrics.EXCEPTION_MISSING_HEADER, "Error parsing Record Key `${record.key()}`: Missing required headers: ${e.message}")
-                }
-                is UnknownEventType -> {
-                    Pair(Metrics.EXCEPTION_UNKNOWN_TYPE, "Error parsing Record Key `${record.key()}`: Unknown Type encountered: ${e.message}")
-                }
-                else -> {
-                    Pair(Metrics.EXCEPTION_DESERIALIZATION, "Error parsing Record Key `${record.key()}`: Error: ${e.message}")
-                }
-            }
-
-            logger.error(e) { logMessage }
-            meterRegistry
-                ?.counter(exceptionMetricName, "topic", record.topic(), KafkaHeaders.type, type)
-                ?.increment()
-            reportException { recordHandlingException(record, e) }
-            return null
+        var parsed = record.value()
+        if (parsed.subject == null && record.key() != null) {
+            parsed = RoninEvent(
+                id = parsed.id,
+                time = parsed.time,
+                specVersion = parsed.specVersion,
+                dataSchema = parsed.dataSchema,
+                type = parsed.type,
+                source = parsed.source,
+                dataContentType = parsed.dataContentType,
+                subject = record.key(),
+                data = parsed.data
+            )
         }
+        return parsed
     }
-
-    /**
-     * Parse kafka [ConsumerRecord] headers out into an easier to use map
-     * @return a key/value map of strings representing the headers
-     */
-    private fun parseHeaders(headers: Headers): Map<String, String> =
-        headers
-            .filter { it.value() != null && it.value().isNotEmpty() }
-            .associate { it.key() to it.value().decodeToString() }
-
-    /**
-     * Validate the headers contain all Ronin Standard Event fields as needed.
-     * See Also: [Ronin Event Standard](https://projectronin.atlassian.net/wiki/spaces/ENG/pages/1748041738/Ronin+Event+Standard)
-     *
-     * @param headers key/value map of strings containing the record headers
-     * @throws EventHeaderMissing If any of the required headers are missing or blank
-     */
-    private fun validateHeaders(headers: Map<String, String>) {
-        headers
-            .keys
-            .let { KafkaHeaders.required - it }
-            .let {
-                if (it.isNotEmpty()) {
-                    throw EventHeaderMissing(it)
-                }
-            }
-    }
-
-    /**
-     * Combines record headers, key, and value into an instance of a [RoninEvent]. Includes de-serializing the record
-     * payload into an instance of a class per the [typeMap].
-     * @param headers The kafka record headers converted to a map of strings
-     * @param key The kafka record key. Translates to [RoninEvent.subject]
-     * @param value The kafka record payload. Should JSON serialized to a string
-     * @param valueClass The [KClass] to deserialize the value into
-     * @return an instance of [RoninEvent]
-     */
-    private fun toRoninEvent(
-        headers: Map<String, String>,
-        key: String,
-        value: ByteArray,
-        valueClass: KClass<out Any>
-    ): RoninEvent<*> =
-        RoninEvent(
-            id = headers.getValue(KafkaHeaders.id),
-            time = Instant.parse(headers.getValue(KafkaHeaders.time)),
-            specVersion = headers.getValue(KafkaHeaders.specVersion),
-            dataSchema = headers.getValue(KafkaHeaders.dataSchema),
-            dataContentType = headers.getValue(KafkaHeaders.contentType),
-            source = headers.getValue(KafkaHeaders.source),
-            type = headers.getValue(KafkaHeaders.type),
-            subject = key,
-            data = mapper.readValue(value, valueClass.java),
-        )
 
     /**
      * An exception occurred... if an [exceptionHandler] was provided, call the provided block to report the
@@ -356,9 +322,19 @@ class RoninConsumer(
     private fun reportException(block: ConsumerExceptionHandler.() -> Unit) {
         try {
             exceptionHandler?.let { block(it) }
+            status.set(Status.STOPPED)
         } catch (e: Exception) {
             logger.error(e) { "Unhandled exception during exception scenario, exiting processing" }
             status.set(Status.STOPPED)
         }
     }
+}
+
+private fun Map<String, KClass<out Any>>.createTypeString() =
+    entries.joinToString(",", transform = { "${it.key}:${it.value.java.name}" })
+
+private fun Properties.appendMap(map: Map<String, KClass<out Any>>): Properties {
+    val copy: Properties = this.clone() as Properties
+    copy[RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG] = map.createTypeString()
+    return copy
 }

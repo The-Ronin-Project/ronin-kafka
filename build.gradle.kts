@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     // intellij shows an error with this, but it's fine: https://youtrack.jetbrains.com/issue/KTIJ-19369
     alias(libs.plugins.kotlin)
@@ -13,7 +14,7 @@ plugins {
 
 allprojects {
     group = "com.projectronin"
-    version = "0.3.0-SNAPSHOT"
+    version = "0.4.0-SNAPSHOT"
 
     repositories {
         maven {
@@ -45,6 +46,7 @@ java {
 
 dependencies {
     api(libs.kafka)
+    api(libs.kafka.streams)
     api(libs.jackson)
     api(libs.micrometer)
 
@@ -53,6 +55,7 @@ dependencies {
     implementation(libs.jackson.datatype.jsr310)
     implementation(libs.jackson.datatype.jdk8)
     implementation(libs.jackson.module.parameterNames)
+    testImplementation(project(mapOf("path" to ":examples:data")))
 
     runtimeOnly(libs.logstash.logback)
 

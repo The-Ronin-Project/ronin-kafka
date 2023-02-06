@@ -1,6 +1,7 @@
 package com.projectronin.kafka
 
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
+import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import com.projectronin.kafka.exceptions.ConsumerExceptionHandler
 import com.projectronin.kafka.exceptions.TransientRetriesExhausted
@@ -21,7 +22,7 @@ import java.time.Duration
 class RoninConsumerProcessHandlerTests {
     data class Stuff(val id: String)
 
-    private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
+    private val kafkaConsumer = mockk<KafkaConsumer<String, RoninEvent<*>>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
         every { commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) } returns Unit
     }
@@ -39,8 +40,26 @@ class RoninConsumerProcessHandlerTests {
     @Test
     fun `ACK commits with no exceptions`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"two\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "last",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "last",
+                    data = Stuff("two")
+                )
+            ),
         )
 
         roninConsumer.process {
@@ -59,8 +78,26 @@ class RoninConsumerProcessHandlerTests {
     @Test
     fun `single TRANSIENT_FAILURE retries twice, commits, and no exceptions`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"two\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "last",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "last",
+                    data = Stuff("two")
+                )
+            ),
         )
 
         var counter = 0
@@ -88,7 +125,16 @@ class RoninConsumerProcessHandlerTests {
     @Test
     fun `TRANSIENT_FAILURE exhausts retries, calls exception handler, commits`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
         )
         every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
 
@@ -110,8 +156,26 @@ class RoninConsumerProcessHandlerTests {
     @Test
     fun `PERMANENT_FAILURE calls exception handler, exits`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"two\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "last",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "last",
+                    data = Stuff("two")
+                )
+            ),
         )
         every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
 
@@ -136,8 +200,26 @@ class RoninConsumerProcessHandlerTests {
     @Test
     fun `unhandled exception calls exception handler, exits`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "last", "{\"id\": \"two\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
+            MockUtils.record(
+                "stuff", "last",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "last",
+                    data = Stuff("two")
+                )
+            ),
         )
         every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
 
