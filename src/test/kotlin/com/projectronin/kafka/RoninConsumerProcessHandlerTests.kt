@@ -167,7 +167,16 @@ class RoninConsumerProcessHandlerTests {
         )
 
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+            MockUtils.record(
+                "stuff", "key1.1",
+                RoninEvent(
+                    dataSchema = "https://projectronin.com/data-schema",
+                    source = "tests",
+                    type = "data.created",
+                    subject = "key1.1",
+                    data = Stuff("one")
+                )
+            ),
         )
         every { exceptionHandler.eventProcessingException(any(), any()) } returns Unit
 
