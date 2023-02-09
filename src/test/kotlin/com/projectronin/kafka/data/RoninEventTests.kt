@@ -12,8 +12,8 @@ class RoninEventTests {
         dataSchema = "https://projectronin.com/data-schema",
         source = "tests",
         type = "data.created",
-        subject = "data.created/1",
-        data = Data(1)
+        data = Data(1),
+        subject = "data.created/1"
     )
 
     @Test

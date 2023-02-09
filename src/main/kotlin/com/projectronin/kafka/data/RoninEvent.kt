@@ -14,6 +14,6 @@ data class RoninEvent<T>(
     val dataContentType: String = "application/json",
     val source: String,
     val type: String,
-    val subject: String,
     val data: T,
+    val subject: String? = null,
 )

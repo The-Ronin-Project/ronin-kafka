@@ -61,10 +61,10 @@ class RoninProducerTests {
                     dataContentType = "stuff",
                     source = "tests",
                     type = "dummy",
-                    subject = "subject",
                     data = object {
                         val id: Int = 3
-                    }
+                    },
+                    subject = "subject"
                 )
             )
 
@@ -127,10 +127,10 @@ class RoninProducerTests {
                     dataContentType = "stuff",
                     source = "tests",
                     type = "dummy",
-                    subject = "subject",
                     data = object {
                         val id: Int = 3
-                    }
+                    },
+                    subject = "subject"
                 )
             )
 
@@ -211,5 +211,113 @@ class RoninProducerTests {
         val meters = metrics.meters.associate { it.id.name to it.id.tags }
         assertThat(meters.keys, containsInAnyOrder(RoninProducer.Metrics.FLUSH_TIMER))
         assertEquals(meters[RoninProducer.Metrics.FLUSH_TIMER], emptyList<ImmutableTag>())
+    }
+
+    @Test
+    fun useKeyWhenSupplied() {
+        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val metadata = mockk<RecordMetadata>()
+        every { kafkaProducer.send(capture(recordSlot), any()) } answers {
+            val block = secondArg<Callback>()
+            block.onCompletion(
+                RecordMetadata(TopicPartition("topic", 1), 1L, 1, System.currentTimeMillis(), 4, 4),
+                RuntimeException("kaboom")
+            )
+            CompletableFuture.completedFuture(metadata)
+        }
+
+        val event = RoninEvent(
+            dataSchema = "dataschema", source = "source", type = "dummy", data = object { val id: Int = 3 },
+            subject = "subject"
+        )
+
+        roninProducer.send(event, "key1")
+
+        verify(exactly = 1) { kafkaProducer.send(any(), any()) }
+        with(recordSlot.captured) {
+            assertEquals("key1", key())
+            assertEquals("subject", headers().getString(KafkaHeaders.subject))
+        }
+    }
+
+    @Test
+    fun useKeyWhenSuppliedSubjectNull() {
+        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val metadata = mockk<RecordMetadata>()
+        every { kafkaProducer.send(capture(recordSlot), any()) } answers {
+            val block = secondArg<Callback>()
+            block.onCompletion(
+                RecordMetadata(TopicPartition("topic", 1), 1L, 1, System.currentTimeMillis(), 4, 4),
+                RuntimeException("kaboom")
+            )
+            CompletableFuture.completedFuture(metadata)
+        }
+
+        val event = RoninEvent(
+            dataSchema = "dataschema", source = "source", type = "dummy",
+            data = object { val id: Int = 3 }
+        )
+
+        roninProducer.send(event, "key1")
+
+        verify(exactly = 1) { kafkaProducer.send(any(), any()) }
+        with(recordSlot.captured) {
+            assertEquals("key1", key())
+            assertNull(headers().find { h -> h.key().equals(KafkaHeaders.subject) })
+        }
+    }
+
+    @Test
+    fun noKeyWhenNoKeyNoSubject() {
+        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val metadata = mockk<RecordMetadata>()
+        every { kafkaProducer.send(capture(recordSlot), any()) } answers {
+            val block = secondArg<Callback>()
+            block.onCompletion(
+                RecordMetadata(TopicPartition("topic", 1), 1L, 1, System.currentTimeMillis(), 4, 4),
+                RuntimeException("kaboom")
+            )
+            CompletableFuture.completedFuture(metadata)
+        }
+
+        val event = RoninEvent(
+            dataSchema = "dataschema", source = "source", type = "dummy",
+            data = object { val id: Int = 3 }
+        )
+
+        roninProducer.send(event)
+
+        verify(exactly = 1) { kafkaProducer.send(any(), any()) }
+        with(recordSlot.captured) {
+            assertEquals(null, key())
+            assertNull(headers().find { h -> h.key().equals(KafkaHeaders.subject) })
+        }
+    }
+
+    @Test
+    fun useSubjectWhenNoKey() {
+        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val metadata = mockk<RecordMetadata>()
+        every { kafkaProducer.send(capture(recordSlot), any()) } answers {
+            val block = secondArg<Callback>()
+            block.onCompletion(
+                RecordMetadata(TopicPartition("topic", 1), 1L, 1, System.currentTimeMillis(), 4, 4),
+                RuntimeException("kaboom")
+            )
+            CompletableFuture.completedFuture(metadata)
+        }
+
+        val event = RoninEvent(
+            dataSchema = "dataschema", source = "source", type = "dummy", data = object { val id: Int = 3 },
+            subject = "subject"
+        )
+
+        roninProducer.send(event)
+
+        verify(exactly = 1) { kafkaProducer.send(any(), any()) }
+        with(recordSlot.captured) {
+            assertEquals("subject", key())
+            assertEquals("subject", headers().getString(KafkaHeaders.subject))
+        }
     }
 }

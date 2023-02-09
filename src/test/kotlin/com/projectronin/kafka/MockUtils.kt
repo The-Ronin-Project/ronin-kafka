@@ -12,7 +12,7 @@ object MockUtils {
         override fun value() = value.toByteArray()
     }
 
-    fun record(type: String, key: String, value: String): ConsumerRecord<String, ByteArray> {
+    fun record(type: String, key: String, value: String, subject: String? = null): ConsumerRecord<String, ByteArray> {
         return mockk {
             every { topic() } returns "topic"
             every { partition() } returns 1
@@ -29,6 +29,9 @@ object MockUtils {
                     Header(KafkaHeaders.source, "6"),
                     Header(KafkaHeaders.type, type),
                 )
+                if (subject != null)
+                    h.add(Header(KafkaHeaders.subject, subject))
+
                 every { iterator() } returns h.iterator()
             }
             every { timestamp() } returns 1659999750

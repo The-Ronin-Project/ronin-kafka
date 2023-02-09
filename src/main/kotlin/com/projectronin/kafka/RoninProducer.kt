@@ -59,11 +59,12 @@ open class RoninProducer(
      * Send an [event] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <T> send(event: RoninEvent<T>): Future<RecordMetadata> {
+    fun <T> send(event: RoninEvent<T>, key: String? = null): Future<RecordMetadata> {
+        val messageKey = key ?: event.subject
         val record = ProducerRecord(
             topic,
             null, // partition
-            event.subject, // key
+            messageKey, // key
             mapper.writeValueAsBytes(event.data), // value
             recordHeaders(event)
         )
@@ -99,16 +100,16 @@ open class RoninProducer(
      * Send [data] with the given [type] and [subject] to the configured kafka topic
      * @return Future containing the kafka RecordMetadata result
      */
-    fun <T> send(type: String, subject: String, data: T): Future<RecordMetadata> =
+    fun <T> send(type: String, subject: String?, data: T): Future<RecordMetadata> =
         send(
             RoninEvent(
-                dataSchema = dataSchema,
-                source = source,
                 specVersion = specVersion,
+                dataSchema = dataSchema,
                 dataContentType = dataContentType,
+                source = source,
                 type = type,
-                subject = subject,
                 data = data,
+                subject = subject,
             )
         )
 
@@ -127,8 +128,8 @@ open class RoninProducer(
      * translate [event] into a list of headers for a kafka record
      * @return list of StringHeader
      */
-    private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> =
-        listOf(
+    private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> {
+        val headers = mutableListOf<StringHeader>(
             StringHeader(KafkaHeaders.id, event.id),
             StringHeader(KafkaHeaders.source, event.source),
             StringHeader(KafkaHeaders.specVersion, event.specVersion),
@@ -137,4 +138,10 @@ open class RoninProducer(
             StringHeader(KafkaHeaders.dataSchema, event.dataSchema),
             StringHeader(KafkaHeaders.time, instantFormatter.format(event.time)),
         )
+
+        if (event.subject != null)
+            headers.add(StringHeader(KafkaHeaders.subject, event.subject))
+
+        return headers
+    }
 }

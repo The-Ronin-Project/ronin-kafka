@@ -8,6 +8,7 @@ object KafkaHeaders {
     const val contentType = "content-type"
     const val source = "ce_source"
     const val type = "ce_type"
+    const val subject = "ce_subject"
 
     val required = listOf(
         id,

@@ -11,10 +11,10 @@ import kotlin.random.Random
 
 fun Wing.toEvent(type: String): RoninEvent<Wing> =
     RoninEvent(
-        source = "ronin-kafka-examples",
         dataSchema = "https://not-a-schema",
-        data = this,
+        source = "ronin-kafka-examples",
         type = type,
+        data = this,
         subject = "wing/$id",
     )
 
@@ -43,10 +43,10 @@ fun main() {
 
     roninProducer.send(
         RoninEvent(
-            source = "producer-application",
             dataSchema = "https://not-a-schema",
-            data = Van("the beast", "chevy", "astrovan", Van.Style.CREEPER),
+            source = "producer-application",
             type = "van.cruising",
+            data = Van("the beast", "chevy", "astrovan", Van.Style.CREEPER),
             subject = "van/the-beast",
         )
     )

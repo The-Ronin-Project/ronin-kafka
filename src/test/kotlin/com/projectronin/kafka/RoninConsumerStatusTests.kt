@@ -42,7 +42,7 @@ class RoninConsumerStatusTests {
     @Test
     fun `processing and stopped`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
-            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}", null),
             MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}"),
             MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
         )

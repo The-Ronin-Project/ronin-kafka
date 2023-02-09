@@ -324,7 +324,7 @@ class RoninConsumer(
      * Combines record headers, key, and value into an instance of a [RoninEvent]. Includes de-serializing the record
      * payload into an instance of a class per the [typeMap].
      * @param headers The kafka record headers converted to a map of strings
-     * @param key The kafka record key. Translates to [RoninEvent.subject]
+     * @param key The kafka record key. Translates to [subject]
      * @param value The kafka record payload. Should JSON serialized to a string
      * @param valueClass The [KClass] to deserialize the value into
      * @return an instance of [RoninEvent]
@@ -343,8 +343,8 @@ class RoninConsumer(
             dataContentType = headers.getValue(KafkaHeaders.contentType),
             source = headers.getValue(KafkaHeaders.source),
             type = headers.getValue(KafkaHeaders.type),
-            subject = key,
             data = mapper.readValue(value, valueClass.java),
+            subject = headers.getOrDefault(KafkaHeaders.subject, key), // TODO - Remove in the future as the need for this backwards compatability goes away.
         )
 
     /**

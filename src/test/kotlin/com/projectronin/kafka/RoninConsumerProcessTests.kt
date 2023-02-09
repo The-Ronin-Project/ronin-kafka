@@ -45,7 +45,7 @@ class RoninConsumerProcessTests {
     fun `receives events`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
             MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}"),
+            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}", "subject"),
             MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
         )
 
@@ -61,9 +61,9 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.1", Stuff("one")),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two")),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("one"), "key1.1"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "subject"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
 
@@ -126,9 +126,9 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.1", Stuff("one")),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two")),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("one"), "key1.1"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "key1.2"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
         verify(exactly = 3) { kafkaConsumer.commitSync(mapOf(TopicPartition("topic", 1) to OffsetAndMetadata(43))) }
@@ -153,7 +153,7 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
 
@@ -201,7 +201,7 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
 
@@ -236,7 +236,7 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
 
@@ -291,7 +291,7 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "last", Stuff("three")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
             )
         )
         verify(exactly = 2) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
@@ -325,7 +325,7 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two")),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "key1.2"),
             )
         )
 
@@ -379,7 +379,7 @@ class RoninConsumerProcessTests {
         }
 
         val exceptionEvent =
-            RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", "key1.2", Stuff("two"))
+            RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "key1.2")
         assertThat(
             processed,
             contains(
