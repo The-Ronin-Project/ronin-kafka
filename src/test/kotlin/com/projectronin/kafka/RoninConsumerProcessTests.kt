@@ -135,6 +135,29 @@ class RoninConsumerProcessTests {
     }
 
     @Test
+    fun `test poll once`() {
+        val roninConsumer = RoninConsumer(
+            listOf("topic.1", "topic.2"),
+            mapOf("stuff" to Stuff::class),
+            kafkaConsumer = kafkaConsumer,
+            kafkaProperties = RoninConsumerKafkaProperties()
+        )
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
+            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}"),
+            MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
+        )
+
+        val processed = mutableListOf<RoninEvent<*>>()
+        roninConsumer.pollOnce { e ->
+            processed.add(e)
+            RoninEventResult.ACK
+        }
+
+        verify(exactly = 3) { kafkaConsumer.commitSync(mapOf(TopicPartition("topic", 1) to OffsetAndMetadata(43))) }
+    }
+
+    @Test
     fun `unknown type is skipped`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
             MockUtils.record("nope", "key1.1", "{\"id\": \"one\"}"),

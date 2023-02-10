@@ -135,6 +135,47 @@ class RoninConsumer(
     }
 
     /**
+     * Poll Kafka for events. If events exist, this function will handle them and return immediately. Otherwise, it will
+     * wait for the [timeout].
+     * Kafka offsets are committed after each successfully processed event.
+     *
+     * Exception scenarios:
+     *
+     *  * Kafka record missing required headers: logged, counted, and record skipped
+     *  * [RoninEvent.type] not included the [typeMap]: logged, counted, and record skipped
+     *  * Deserialization exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and exception
+     *                               are passed to the [errorHandler]
+     *  * Unhandled processing exception: logged and counted. If an [exceptionHandler] is defined, the kafka record and
+     *                                    exception are passed to the [errorHandler]
+     *
+     * @param timeout Maximum amount of time to block while polling kafka. Default: 100ms
+     * @param handler The function that each [RoninEvent] should be passed to for processing. If the function returns
+     *                  normally, processing is considered successful and the offset is committed. If an exception
+     *                  is thrown
+     */
+    fun pollOnce(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
+        val start = System.currentTimeMillis()
+        kafkaConsumer
+            .poll(timeout)
+            .also {
+                // TODO: Should these tag with a list of topics? list of types?
+                pollDistribution?.record(it.count().toDouble())
+                pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+            }
+            .asSequence() // get a lazy sequence to facilitate exiting via the filter
+            .forEach { record ->
+                parseEvent(record)
+                    ?.let { handleEvent(record, it, handler) }
+                    .let { result ->
+                        // Commit if we couldn't parse (null) OR handleEvent returned true
+                        if (result != false) {
+                            commitRecordOffset(record)
+                        }
+                    }
+            }
+    }
+
+    /**
      * Retrieve the current status of the [RoninConsumer]
      * @return [RoninConsumer.Status]
      */
@@ -147,6 +188,7 @@ class RoninConsumer(
     fun unsubscribe() {
         kafkaConsumer.unsubscribe()
     }
+
     /**
      * Commit the offset for the provided record
      * @param record The ConsumerRecord that should be committed as processed for this consumer group
@@ -274,13 +316,22 @@ class RoninConsumer(
             // determine metric and logMessage to record based on the exception.
             val (exceptionMetricName, logMessage) = when (e) {
                 is EventHeaderMissing -> {
-                    Pair(Metrics.EXCEPTION_MISSING_HEADER, "Error parsing Record Key `${record.key()}`: Missing required headers: ${e.message}")
+                    Pair(
+                        Metrics.EXCEPTION_MISSING_HEADER,
+                        "Error parsing Record Key `${record.key()}`: Missing required headers: ${e.message}"
+                    )
                 }
                 is UnknownEventType -> {
-                    Pair(Metrics.EXCEPTION_UNKNOWN_TYPE, "Error parsing Record Key `${record.key()}`: Unknown Type encountered: ${e.message}")
+                    Pair(
+                        Metrics.EXCEPTION_UNKNOWN_TYPE,
+                        "Error parsing Record Key `${record.key()}`: Unknown Type encountered: ${e.message}"
+                    )
                 }
                 else -> {
-                    Pair(Metrics.EXCEPTION_DESERIALIZATION, "Error parsing Record Key `${record.key()}`: Error: ${e.message}")
+                    Pair(
+                        Metrics.EXCEPTION_DESERIALIZATION,
+                        "Error parsing Record Key `${record.key()}`: Error: ${e.message}"
+                    )
                 }
             }
 
