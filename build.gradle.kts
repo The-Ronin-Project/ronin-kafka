@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URL
 
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     // intellij shows an error with this, but it's fine: https://youtrack.jetbrains.com/issue/KTIJ-19369
     alias(libs.plugins.kotlin)

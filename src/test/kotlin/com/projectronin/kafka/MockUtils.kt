@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.ConsumerRecords
+import org.apache.kafka.common.header.Headers
 
 object MockUtils {
     class Header(private val key: String, private val value: String) : org.apache.kafka.common.header.Header {
@@ -34,6 +35,18 @@ object MockUtils {
 
                 every { iterator() } returns h.iterator()
             }
+            every { timestamp() } returns 1659999750
+        }
+    }
+
+    fun record(key: String, value: ByteArray, headers: Headers): ConsumerRecord<String, ByteArray> {
+        return mockk {
+            every { topic() } returns "topic"
+            every { partition() } returns 1
+            every { offset() } returns 42
+            every { key() } returns key
+            every { value() } returns value
+            every { headers() } returns headers
             every { timestamp() } returns 1659999750
         }
     }

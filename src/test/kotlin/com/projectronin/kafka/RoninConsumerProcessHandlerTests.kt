@@ -19,7 +19,7 @@ import java.time.Duration
  * These are just testing the return values of teh handler function and that they're correctly dealt with
  */
 class RoninConsumerProcessHandlerTests {
-    data class Stuff(val id: String)
+    private data class Stuff(val id: String)
 
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit

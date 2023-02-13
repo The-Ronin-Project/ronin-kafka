@@ -15,7 +15,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import java.time.Duration
 
 class RoninConsumerStatusTests {
-    data class Stuff(val id: String)
+    private data class Stuff(val id: String)
 
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
