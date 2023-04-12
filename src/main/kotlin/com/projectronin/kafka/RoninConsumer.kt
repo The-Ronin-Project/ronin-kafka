@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.WakeupException
 import org.apache.kafka.common.header.Headers
 import java.time.Duration
 import java.time.Instant
@@ -65,6 +66,14 @@ class RoninConsumer(
                 .register(meterRegistry)
         }
 
+
+    companion object {
+        // default timeout on close event (normal kafka default is 30s, don't want to wait that long)
+        val DEFAULT_CLOSE_TIMEOUT_MS: Duration = Duration.ofMillis(10 * 1000)
+        // default timeout on kafka poll event
+        val DEFAULT_POLL_TIMEOUT: Duration = Duration.ofMillis(100)
+    }
+
     init {
         logger.info { "subscribing to topics `$topics`" }
         kafkaConsumer.subscribe(topics)
@@ -107,29 +116,41 @@ class RoninConsumer(
      *                  normally, processing is considered successful and the offset is committed. If an exception
      *                  is thrown
      */
-    fun process(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
+    fun process(timeout: Duration = DEFAULT_POLL_TIMEOUT, handler: (RoninEvent<*>) -> RoninEventResult) {
         status.set(Status.PROCESSING)
+
+        // todo - the inner loop could probably just call poll-once rather than have duplidate code, but i digress.
         while (status() == Status.PROCESSING) {
             val start = System.currentTimeMillis()
-            kafkaConsumer
-                .poll(timeout)
-                .also {
-                    // TODO: Should these tag with a list of topics? list of types?
-                    pollDistribution?.record(it.count().toDouble())
-                    pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
-                }
-                .asSequence() // get a lazy sequence to facilitate exiting via the filter
-                .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
-                .forEach { record ->
-                    parseEvent(record)
-                        ?.let { handleEvent(record, it, handler) }
-                        .let { result ->
-                            // Commit if we couldn't parse (null) OR handleEvent returned true
-                            if (result != false) {
-                                commitRecordOffset(record)
+            try {
+                kafkaConsumer
+                    .poll(timeout)
+                    .also {
+                        // TODO: Should these tag with a list of topics? list of types?
+                        pollDistribution?.record(it.count().toDouble())
+                        pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+                    }
+                    .asSequence() // get a lazy sequence to facilitate exiting via the filter
+                    .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
+                    .forEach { record ->
+                        parseEvent(record)
+                            ?.let { handleEvent(record, it, handler) }
+                            .let { result ->
+                                // Commit if we couldn't parse (null) OR handleEvent returned true
+                                if (result != false) {
+                                    commitRecordOffset(record)
+                                }
                             }
-                        }
+                    }
+            } catch (e: WakeupException) {
+
+                // if got a wake-up exception AND we are stopped, then just close everything down.
+                // otherwise re-throw the exception
+                when (status.get()) {
+                    Status.STOPPED -> kafkaConsumer.close(DEFAULT_CLOSE_TIMEOUT_MS)
+                    else -> throw e
                 }
+            }
         }
         logger.info { "Exiting processing" }
     }
@@ -155,24 +176,36 @@ class RoninConsumer(
      */
     fun pollOnce(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
         val start = System.currentTimeMillis()
-        kafkaConsumer
-            .poll(timeout)
-            .also {
-                // TODO: Should these tag with a list of topics? list of types?
-                pollDistribution?.record(it.count().toDouble())
-                pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
-            }
-            .asSequence() // get a lazy sequence to facilitate exiting via the filter
-            .forEach { record ->
-                parseEvent(record)
-                    ?.let { handleEvent(record, it, handler) }
-                    .let { result ->
-                        // Commit if we couldn't parse (null) OR handleEvent returned true
-                        if (result != false) {
-                            commitRecordOffset(record)
+        try {
+            kafkaConsumer
+                .poll(timeout)
+                .also {
+                    // TODO: Should these tag with a list of topics? list of types?
+                    pollDistribution?.record(it.count().toDouble())
+                    pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+                }
+                .asSequence() // get a lazy sequence to facilitate exiting via the filter
+                .forEach { record ->
+                    parseEvent(record)
+                        ?.let { handleEvent(record, it, handler) }
+                        .let { result ->
+                            // Commit if we couldn't parse (null) OR handleEvent returned true
+                            if (result != false) {
+                                commitRecordOffset(record)
+                            }
                         }
-                    }
+                }
+        } catch (e: WakeupException) {
+            // YES would still need ths here b/c pollOnce can take a very long time
+
+            // if got a wake-up exception AND we are stopped, then just close everything down.
+            // otherwise re-throw the exception
+            when (status.get()) {
+                Status.STOPPED -> kafkaConsumer.close(DEFAULT_CLOSE_TIMEOUT_MS)
+                else -> throw e
             }
+        }
+
     }
 
     /**
@@ -184,10 +217,16 @@ class RoninConsumer(
     /**
      * Discontinue polling done by [process] functions and have them return
      */
-    fun stop() = status.set(Status.STOPPED)
+    fun stop() {
+        // TODO - could also add a 'destory()' method to call stop... is that needed?
+        status.set(Status.STOPPED)
+        kafkaConsumer.wakeup()
+    }
+
     fun unsubscribe() {
         kafkaConsumer.unsubscribe()
     }
+
 
     /**
      * Commit the offset for the provided record
