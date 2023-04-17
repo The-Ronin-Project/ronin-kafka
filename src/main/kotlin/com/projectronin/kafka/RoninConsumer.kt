@@ -17,6 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.WakeupException
 import org.apache.kafka.common.header.Headers
 import java.time.Duration
 import java.time.Instant
@@ -108,29 +109,29 @@ class RoninConsumer(
      *                  is thrown
      */
     fun process(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
-        status.set(Status.PROCESSING)
-        while (status() == Status.PROCESSING) {
-            val start = System.currentTimeMillis()
-            kafkaConsumer
-                .poll(timeout)
-                .also {
-                    // TODO: Should these tag with a list of topics? list of types?
-                    pollDistribution?.record(it.count().toDouble())
-                    pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
-                }
-                .asSequence() // get a lazy sequence to facilitate exiting via the filter
-                .filter { status() == Status.PROCESSING } // exit immediately if we are stopped
-                .forEach { record ->
-                    parseEvent(record)
-                        ?.let { handleEvent(record, it, handler) }
-                        .let { result ->
-                            // Commit if we couldn't parse (null) OR handleEvent returned true
-                            if (result != false) {
-                                commitRecordOffset(record)
-                            }
-                        }
-                }
+        if (!status.compareAndSet(Status.INITIALIZED, Status.PROCESSING)) {
+            throw IllegalStateException("process() can only be called once per instance")
         }
+
+        try {
+            while (status() == Status.PROCESSING) {
+                poll(timeout)
+                    .forEach { (record, event) ->
+                        if (event == null || handleEvent(record, event, handler)) {
+                            commitRecordOffset(record)
+                        }
+                    }
+            }
+        } catch (ex: WakeupException) {
+            if (status.get() != Status.STOPPED) {
+                throw ex
+            } else {
+                /* We expect a WakeupException when stop() is called and we wake up KafkaConsumer, so it's safe to ignore it */
+            }
+        } finally {
+            kafkaConsumer.close()
+        }
+
         logger.info { "Exiting processing" }
     }
 
@@ -154,24 +155,15 @@ class RoninConsumer(
      *                  is thrown
      */
     fun pollOnce(timeout: Duration = Duration.ofMillis(100), handler: (RoninEvent<*>) -> RoninEventResult) {
-        val start = System.currentTimeMillis()
-        kafkaConsumer
-            .poll(timeout)
-            .also {
-                // TODO: Should these tag with a list of topics? list of types?
-                pollDistribution?.record(it.count().toDouble())
-                pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
-            }
-            .asSequence() // get a lazy sequence to facilitate exiting via the filter
-            .forEach { record ->
-                parseEvent(record)
-                    ?.let { handleEvent(record, it, handler) }
-                    .let { result ->
-                        // Commit if we couldn't parse (null) OR handleEvent returned true
-                        if (result != false) {
-                            commitRecordOffset(record)
-                        }
-                    }
+        if (status.get() == Status.STOPPED) {
+            throw IllegalStateException("pollOnce() cannot be called after the instance is stopped")
+        }
+
+        poll(timeout)
+            .forEach { (record, event) ->
+                if (event == null || handleEvent(record, event, handler)) {
+                    commitRecordOffset(record)
+                }
             }
     }
 
@@ -184,9 +176,27 @@ class RoninConsumer(
     /**
      * Discontinue polling done by [process] functions and have them return
      */
-    fun stop() = status.set(Status.STOPPED)
+    fun stop() {
+        status.set(Status.STOPPED)
+        kafkaConsumer.wakeup()
+    }
+
     fun unsubscribe() {
         kafkaConsumer.unsubscribe()
+    }
+
+    private fun poll(timeout: Duration): Sequence<Pair<ConsumerRecord<String, ByteArray>, RoninEvent<*>?>> {
+        val start = System.currentTimeMillis()
+        return kafkaConsumer
+            .poll(timeout)
+            .also {
+                // TODO: Should these tag with a list of topics? list of types?
+                pollDistribution?.record(it.count().toDouble())
+                pollTimer?.record(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS)
+            }
+            .asSequence()
+            .takeWhile { status() != Status.STOPPED }
+            .map { record -> Pair(record, parseEvent(record)) }
     }
 
     /**
@@ -409,7 +419,7 @@ class RoninConsumer(
             exceptionHandler?.let { block(it) }
         } catch (e: Exception) {
             logger.error(e) { "Unhandled exception during exception scenario, exiting processing" }
-            status.set(Status.STOPPED)
+            stop()
         }
     }
 }

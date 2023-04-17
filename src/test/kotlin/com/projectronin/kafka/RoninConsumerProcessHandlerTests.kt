@@ -24,6 +24,8 @@ class RoninConsumerProcessHandlerTests {
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
         every { commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) } returns Unit
+        every { wakeup() } returns Unit
+        every { close() } returns Unit
     }
     private val exceptionHandler: ConsumerExceptionHandler = mockk {}
     private val metrics = SimpleMeterRegistry()

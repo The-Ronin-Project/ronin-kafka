@@ -20,6 +20,8 @@ class RoninConsumerStatusTests {
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
         every { commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) } returns Unit
+        every { wakeup() } returns Unit
+        every { close() } returns Unit
     }
     private val roninConsumer = RoninConsumer(
         listOf("topic.1", "topic.2"),

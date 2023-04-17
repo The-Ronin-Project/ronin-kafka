@@ -15,14 +15,23 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.WakeupException
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.hamcrest.Matchers.instanceOf
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class RoninConsumerProcessTests {
     private data class Stuff(val id: String)
@@ -30,6 +39,8 @@ class RoninConsumerProcessTests {
     private val kafkaConsumer = mockk<KafkaConsumer<String, ByteArray>> {
         every { subscribe(listOf("topic.1", "topic.2")) } returns Unit
         every { commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) } returns Unit
+        every { wakeup() } returns Unit
+        every { close() } returns Unit
     }
     private val metrics = SimpleMeterRegistry()
     private val roninConsumer = RoninConsumer(
@@ -40,6 +51,13 @@ class RoninConsumerProcessTests {
         kafkaProperties = RoninConsumerKafkaProperties()
     )
     private val fixedInstant = Instant.ofEpochSecond(1660000000)
+
+    private val executor = Executors.newSingleThreadExecutor()
+
+    @AfterEach
+    fun shutdownExecutor() {
+        executor.shutdownNow()
+    }
 
     @Test
     fun `receives events`() {
@@ -448,5 +466,109 @@ class RoninConsumerProcessTests {
 
         verify(exactly = 0) { kafkaConsumer.commitSync(any<Map<TopicPartition, OffsetAndMetadata>>()) }
         assertEquals(RoninConsumer.Status.STOPPED, roninConsumer.status())
+    }
+
+    @Test
+    fun `process throws exception if process is already running`() {
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records()
+
+        executor.submit {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+
+        // make sure it's actually running on the background thread - otherwise this thread could win and start first
+        while (roninConsumer.status() != RoninConsumer.Status.PROCESSING) { Thread.sleep(10) }
+
+        val exception = assertThrows(IllegalStateException::class.java) {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+
+        assertEquals("process() can only be called once per instance", exception.message)
+
+        roninConsumer.stop()
+    }
+
+    @Test
+    fun `process throws exception after consumer is stopped`() {
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records()
+
+        executor.submit {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+        roninConsumer.stop()
+
+        assertEquals(RoninConsumer.Status.STOPPED, roninConsumer.status())
+        val exception = assertThrows(IllegalStateException::class.java) {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+        assertEquals("process() can only be called once per instance", exception.message)
+    }
+
+    @Test
+    fun `processOnce throws exception when consumer is stopped`() {
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records()
+
+        roninConsumer.stop()
+        val exception = assertThrows(IllegalStateException::class.java) {
+            roninConsumer.pollOnce { RoninEventResult.ACK }
+        }
+        assertEquals("pollOnce() cannot be called after the instance is stopped", exception.message)
+    }
+
+    @Test
+    fun `stop wakes up KafkaConsumer and exits processing loop`() {
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records()
+
+        val future = executor.submit {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+
+        // Make sure the consumer actually starts processing before we stop it
+        while (roninConsumer.status() != RoninConsumer.Status.PROCESSING) { Thread.sleep(10) }
+
+        roninConsumer.stop()
+
+        verify(exactly = 1) { kafkaConsumer.wakeup() }
+        assertEquals(RoninConsumer.Status.STOPPED, roninConsumer.status())
+        assertDoesNotThrow { future.get(100, TimeUnit.MILLISECONDS) }
+        verify(exactly = 1) { kafkaConsumer.close() }
+    }
+
+    @Test
+    fun `process rethrows WakeupExceptions when not shutting down`() {
+        every { kafkaConsumer.poll(any<Duration>()) } throws WakeupException()
+
+        assertThrows(WakeupException::class.java) {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+    }
+
+    @Test
+    fun `process ignores WakeupExceptions during shutdown`() {
+        // We need KafkaConsumer.poll() to throw a WakeupException _after_ we've stopped the consumer. To accomplish
+        // this, we have the poll() mock block, and then we have KafkaConsumer.wakeup() wake it up, similarly to how
+        // KafkaConsumer really works.
+        val latch = CountDownLatch(1)
+        val threwException = AtomicBoolean(false)
+        every { kafkaConsumer.poll(any<Duration>()) } answers {
+            latch.await()
+            threwException.set(true)
+            throw WakeupException()
+        }
+        every { kafkaConsumer.wakeup() } answers { latch.countDown() }
+
+        val future = executor.submit {
+            roninConsumer.process { RoninEventResult.ACK }
+        }
+
+        // Make sure the consumer actually starts processing (aka we're waiting on kafkaConsumer.poll())
+        while (roninConsumer.status() != RoninConsumer.Status.PROCESSING) { Thread.sleep(10) }
+
+        roninConsumer.stop()
+
+        // make sure we actually threw the WakeupException
+        assertTrue(threwException.get())
+        // But that KafkaConsumer.process didn't throw it
+        assertDoesNotThrow { future.get(100, TimeUnit.MILLISECONDS) }
     }
 }
