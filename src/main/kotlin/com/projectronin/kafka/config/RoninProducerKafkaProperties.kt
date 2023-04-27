@@ -27,6 +27,10 @@ import java.util.concurrent.TimeUnit
  *
  */
 class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
+    companion object {
+        private const val MB = 1024L * 1024L
+    }
+
     val properties: Properties by lazy {
         Properties()
             .apply {
@@ -38,10 +42,10 @@ class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
                 put("enable.idempotent", false)
                 put(RETRIES_CONFIG, 3)
                 put(MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1) // kafka default is 5
-                put(BUFFER_MEMORY_CONFIG, 32L * 1024L) // kafka default of 32MB
+                put(BUFFER_MEMORY_CONFIG, 32L * MB) // kafka default of 32MB
                 put(MAX_BLOCK_MS_CONFIG, TimeUnit.MINUTES.toMillis(1))
                 put(LINGER_MS_CONFIG, 5L)
-                put(BATCH_SIZE_CONFIG, 16 * 1024) // kafka default of 16MB
+                put(BATCH_SIZE_CONFIG, 16 * MB) // kafka default of 16MB
                 put(COMPRESSION_TYPE_CONFIG, SNAPPY.name) // kafka default is "none"
                 putAll(configs)
             }

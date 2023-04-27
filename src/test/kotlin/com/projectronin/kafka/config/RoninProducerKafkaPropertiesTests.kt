@@ -43,4 +43,11 @@ class RoninProducerKafkaPropertiesTests {
         assertTrue(appended.containsKey("the.answer"))
         assertEquals(42L, appended["the.answer"])
     }
+
+    @Test
+    fun `default memory and size config are in MB`() {
+        val properties = RoninProducerKafkaProperties().properties
+        assertEquals(32 * 1024 * 1024L, properties["buffer.memory"])
+        assertEquals(16 * 1024 * 1024L, properties["batch.size"])
+    }
 }
