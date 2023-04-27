@@ -5,9 +5,9 @@ import com.projectronin.kafka.config.MapperFactory
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.StringHeader
+import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.serialization.Serializer
-import java.lang.Exception
 import java.time.format.DateTimeFormatter
 
 class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
@@ -15,12 +15,12 @@ class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
     private val instantFormatter = DateTimeFormatter.ISO_INSTANT
 
     override fun serialize(topic: String?, data: RoninEvent<T>?): ByteArray {
-        throw Exception("Serialize method without headers is not a valid means to deserialize a RoninEvent")
+        throw SerializationException("Serialize method without headers is not a valid means to deserialize a RoninEvent")
     }
 
     override fun serialize(topic: String?, headers: Headers?, event: RoninEvent<T>?): ByteArray? {
         if (headers == null)
-            throw Exception("Headers are required to deserialize a RoninEvent into, but the headers were not supplied.")
+            throw SerializationException("Headers are required to deserialize a RoninEvent into, but the headers were not supplied.")
         if (event == null)
             return null
 
