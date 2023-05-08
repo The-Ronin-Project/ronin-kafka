@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
  */
 class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
     companion object {
-        private const val MB = 1024L * 1024L
+        private const val MB = 1024 * 1024
     }
 
     val properties: Properties by lazy {
