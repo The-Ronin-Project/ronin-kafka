@@ -1,5 +1,6 @@
 package com.projectronin.kafka.serde.wrapper
 
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.data.RoninWrapper
 import com.projectronin.kafka.data.StringHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
@@ -7,15 +8,14 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 
-class DeserializerTest {
+class WrapperDeserializerTest {
     private data class Stuff(val id: String)
     @Test
     fun `deserialize with complete headers`() {
-        val deserializer = Deserializer<Stuff>()
+        val deserializer = WrapperDeserializer<Stuff>()
         deserializer.configure(
             mutableMapOf(
-                Deserializer.RONIN_WRAPPER_DESERIALIZATION_TYPES_CONFIG to
-                    "stuff:com.projectronin.kafka.serde.wrapper.DeserializerTest\$Stuff"
+                RONIN_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.wrapper.WrapperDeserializerTest\$Stuff"
             ),
             false
         )

@@ -1,11 +1,11 @@
 package com.projectronin.kafka.serde
 
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.StringHeader
 import com.projectronin.kafka.exceptions.DeserializationException
 import com.projectronin.kafka.exceptions.EventHeaderMissing
 import com.projectronin.kafka.exceptions.UnknownEventType
-import com.projectronin.kafka.serde.RoninEventDeserializer.Companion.RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -20,7 +20,7 @@ class RoninEventDeserializerTest {
     @Test
     fun `deserialize no headers error`() {
         val deserializer = RoninEventDeserializer<Stuff>()
-        deserializer.configure(mutableMapOf(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
+        deserializer.configure(mutableMapOf(RONIN_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
         assertThrows<Exception> {
             deserializer.deserialize("topic", "MattersNot".toByteArray())
         }
@@ -29,7 +29,7 @@ class RoninEventDeserializerTest {
     @Test
     fun `deserialize with complete headers`() {
         val deserializer = RoninEventDeserializer<Stuff>()
-        deserializer.configure(mutableMapOf(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
+        deserializer.configure(mutableMapOf(RONIN_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
         val headers = RecordHeaders(
             mutableListOf(
                 StringHeader(KafkaHeaders.id, "1"),
@@ -59,7 +59,7 @@ class RoninEventDeserializerTest {
     @Test
     fun `deserialize missing required headers error`() {
         val deserializer = RoninEventDeserializer<Stuff>()
-        deserializer.configure(mutableMapOf(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
+        deserializer.configure(mutableMapOf(RONIN_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
         assertThrows<EventHeaderMissing> {
             val headers = RecordHeaders(
                 mutableListOf(
@@ -79,7 +79,7 @@ class RoninEventDeserializerTest {
     @Test
     fun `deserialize missing type in map error`() {
         val deserializer = RoninEventDeserializer<Stuff>()
-        deserializer.configure(mutableMapOf(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG to "foo:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
+        deserializer.configure(mutableMapOf(RONIN_DESERIALIZATION_TYPES_CONFIG to "foo:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
         assertThrows<UnknownEventType> {
             val headers = RecordHeaders(
                 mutableListOf(
@@ -100,7 +100,7 @@ class RoninEventDeserializerTest {
     @Test
     fun `deserialize bad data error`() {
         val deserializer = RoninEventDeserializer<Stuff>()
-        deserializer.configure(mutableMapOf(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
+        deserializer.configure(mutableMapOf(RONIN_DESERIALIZATION_TYPES_CONFIG to "stuff:com.projectronin.kafka.serde.RoninEventDeserializerTest\$Stuff"), false)
         assertThrows<DeserializationException> {
             val headers = RecordHeaders(
                 mutableListOf(

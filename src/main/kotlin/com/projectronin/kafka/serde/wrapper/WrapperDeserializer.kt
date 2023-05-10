@@ -2,6 +2,7 @@ package com.projectronin.kafka.serde.wrapper
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.projectronin.kafka.config.MapperFactory
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.data.RoninWrapper
 import com.projectronin.kafka.exceptions.DeserializationException
 import com.projectronin.kafka.exceptions.EventHeaderMissing
@@ -9,14 +10,14 @@ import com.projectronin.kafka.exceptions.UnknownEventType
 import org.apache.kafka.common.header.Headers
 import kotlin.reflect.KClass
 
-class Deserializer<T> : org.apache.kafka.common.serialization.Deserializer<RoninWrapper<T>> {
+class WrapperDeserializer<T> : org.apache.kafka.common.serialization.Deserializer<RoninWrapper<T>> {
     private lateinit var typeMap: Map<String, KClass<*>>
     private val mapper: ObjectMapper = MapperFactory.mapper
 
     override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) {
         super.configure(configs, isKey)
 
-        val types = configs?.get(RONIN_WRAPPER_DESERIALIZATION_TYPES_CONFIG) as String
+        val types = configs?.get(RONIN_DESERIALIZATION_TYPES_CONFIG) as String
 
         typeMap = types.split(",")
             .associate {
@@ -53,9 +54,5 @@ class Deserializer<T> : org.apache.kafka.common.serialization.Deserializer<Ronin
         } catch (e: Exception) {
             throw DeserializationException(type, valueClass)
         }
-    }
-
-    companion object {
-        const val RONIN_WRAPPER_DESERIALIZATION_TYPES_CONFIG = "json.deserializer.types"
     }
 }

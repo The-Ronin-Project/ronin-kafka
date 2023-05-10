@@ -8,7 +8,7 @@ import com.projectronin.kafka.data.StringHeader
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.Serializer
 
-class Serializer<T> : Serializer<RoninWrapper<T>> {
+class WrapperSerializer<T> : Serializer<RoninWrapper<T>> {
     private val mapper: ObjectMapper = MapperFactory.mapper
 
     override fun serialize(topic: String?, data: RoninWrapper<T>?): ByteArray {

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class SerializerTest {
+class WrapperSerializerTest {
     private data class Stuff(val id: String)
 
     @Test
@@ -18,7 +18,7 @@ class SerializerTest {
             wrapperVersion = "1", sourceService = "assets", tenantId = "apposnd", dataType = "stuff", data = Stuff("3")
         )
 
-        val serializer: Serializer<Stuff> = Serializer()
+        val serializer: WrapperSerializer<Stuff> = WrapperSerializer()
         val serializedHeaders = RecordHeaders()
         val serializedBytes = serializer.serialize("topic", serializedHeaders, originalEvent)
 
@@ -32,7 +32,7 @@ class SerializerTest {
 
     @Test
     fun `null serializes to null `() {
-        val serializer: Serializer<Stuff> = Serializer()
+        val serializer: WrapperSerializer<Stuff> = WrapperSerializer()
         assertNull(serializer.serialize("topic", RecordHeaders(), null))
     }
 
@@ -41,7 +41,7 @@ class SerializerTest {
         val originalEvent = RoninWrapper(
             wrapperVersion = "1", sourceService = "assets", tenantId = "apposnd", dataType = "stuff", data = Stuff("3")
         )
-        val serializer: Serializer<Stuff> = Serializer()
+        val serializer: WrapperSerializer<Stuff> = WrapperSerializer()
         assertThrows<SerializationException> { serializer.serialize("topic", null, originalEvent) }
     }
 

@@ -2,6 +2,7 @@ package com.projectronin.kafka.serde
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.projectronin.kafka.config.MapperFactory
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.exceptions.DeserializationException
@@ -18,7 +19,7 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
     override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) {
         super.configure(configs, isKey)
 
-        val types = configs?.get(RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG) as String
+        val types = configs?.get(RONIN_DESERIALIZATION_TYPES_CONFIG) as String
 
         typeMap = types.split(",")
             .associate {
@@ -55,9 +56,5 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
         } catch (e: Exception) {
             throw DeserializationException(type, valueClass)
         }
-    }
-
-    companion object {
-        const val RONIN_EVENT_DESERIALIZATION_TYPES_CONFIG = "json.deserializer.types"
     }
 }

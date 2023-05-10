@@ -14,7 +14,7 @@ plugins {
 
 allprojects {
     group = "com.projectronin"
-    version = "0.5.0-SNAPSHOT"
+    version = "1.0.0-SNAPSHOT"
 
     repositories {
         maven {
@@ -46,6 +46,7 @@ java {
 
 dependencies {
     api(libs.kafka)
+    api(libs.kafka.streams)
     api(libs.jackson)
     api(libs.micrometer)
 

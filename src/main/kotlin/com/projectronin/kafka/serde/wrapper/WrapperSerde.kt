@@ -3,9 +3,9 @@ package com.projectronin.kafka.serde.wrapper
 import com.projectronin.kafka.data.RoninWrapper
 import org.apache.kafka.common.serialization.Serde
 
-class Serde<T> : Serde<RoninWrapper<T>> {
-    private val serializer = com.projectronin.kafka.serde.wrapper.Serializer<T>()
-    private val deserializer = com.projectronin.kafka.serde.wrapper.Deserializer<T>()
+class WrapperSerde<T> : Serde<RoninWrapper<T>> {
+    private val serializer = com.projectronin.kafka.serde.wrapper.WrapperSerializer<T>()
+    private val deserializer = com.projectronin.kafka.serde.wrapper.WrapperDeserializer<T>()
 
     override fun serializer(): org.apache.kafka.common.serialization.Serializer<RoninWrapper<T>> {
         return serializer
