@@ -26,14 +26,17 @@ import kotlin.reflect.KClass
 class KafkaConfigurator private constructor(
     private val configMap: MutableMap<String, Any?>
 ) {
+    val topicMap: MutableMap<String, String> = HashMap()
     val typeMap: MutableMap<String, String> = HashMap()
 
     fun configs(): Map<String, Any?> {
         if (typeMap.isNotEmpty()) {
             configMap[RoninConfig.RONIN_DESERIALIZATION_TYPES_CONFIG] =
-                typeMap.map { "${it.key}:${it.value}" }
-                    .fold("") { accumulated, item -> "$accumulated$item," }
-                    .substringBeforeLast(",")
+                typeMap.map { "${it.key}:${it.value}" }.joinToString(",")
+        }
+        if (topicMap.isNotEmpty()) {
+            configMap[RoninConfig.RONIN_DESERIALIZATION_TOPICS_CONFIG] =
+                topicMap.map { "${it.key}:${it.value}" }.joinToString(",")
         }
         return configMap
     }
@@ -110,6 +113,22 @@ class KafkaConfigurator private constructor(
 
     fun withDeserializationType(type: String, typeClass: Class<*>): KafkaConfigurator {
         typeMap[type] = typeClass.name
+        return this
+    }
+
+    /**
+     * Configures the deserializer to map all messages on the specified topic to an instance of the specified typeClass.
+     */
+    fun withDeserializationTopic(topic: String, typeClass: KClass<*>): KafkaConfigurator {
+        topicMap[topic] = typeClass.qualifiedName!!
+        return this
+    }
+
+    /**
+     * Configures the deserializer to map all messages on the specified topic to an instance of the specified typeClass.
+     */
+    fun withDeserializationTopic(topic: String, typeClass: Class<*>): KafkaConfigurator {
+        topicMap[topic] = typeClass.name
         return this
     }
 

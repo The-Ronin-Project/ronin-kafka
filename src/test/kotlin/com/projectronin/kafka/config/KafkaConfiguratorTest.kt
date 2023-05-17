@@ -1,5 +1,6 @@
 package com.projectronin.kafka.config
 
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TOPICS_CONFIG
 import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.serde.RoninEventSerde
 import com.projectronin.kafka.serde.RoninEventSerializer
@@ -71,12 +72,19 @@ class KafkaConfiguratorTest {
             .builder(KafkaConfigurator.ClientType.CONSUMER, clusterConfig)
             .withDeserializationType("stuff", Stuff::class)
             .withDeserializationType("foo", Foo::class)
+            .withDeserializationTopic("stuff_topic", Stuff::class)
+            .withDeserializationTopic("foo_topic", Foo::class.java)
             .configs()
 
         assertEquals(
             "foo:com.projectronin.kafka.config.KafkaConfiguratorTest.Foo,stuff:" +
                 "com.projectronin.kafka.config.KafkaConfiguratorTest.Stuff",
             configs[RONIN_DESERIALIZATION_TYPES_CONFIG]
+        )
+        assertEquals(
+            "stuff_topic:com.projectronin.kafka.config.KafkaConfiguratorTest.Stuff," +
+                "foo_topic:com.projectronin.kafka.config.KafkaConfiguratorTest\$Foo",
+            configs[RONIN_DESERIALIZATION_TOPICS_CONFIG]
         )
         assertEquals(false, configs[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG])
         assertEquals("earliest", configs[ConsumerConfig.AUTO_OFFSET_RESET_CONFIG])

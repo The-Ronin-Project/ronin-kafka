@@ -2,6 +2,7 @@ package com.projectronin.kafka.serde
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.projectronin.kafka.config.MapperFactory
+import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TOPICS_CONFIG
 import com.projectronin.kafka.config.RoninConfig.Companion.RONIN_DESERIALIZATION_TYPES_CONFIG
 import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
@@ -13,26 +14,25 @@ import org.apache.kafka.common.serialization.Deserializer
 import kotlin.reflect.KClass
 
 class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
+    private lateinit var topicMap: Map<String, KClass<*>>
     private lateinit var typeMap: Map<String, KClass<*>>
     private val mapper: ObjectMapper = MapperFactory.mapper
 
-    override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) {
+    override fun configure(configs: MutableMap<String, *>, isKey: Boolean) {
         super.configure(configs, isKey)
 
-        val types = configs?.get(RONIN_DESERIALIZATION_TYPES_CONFIG) as String
+        val topics = configs[RONIN_DESERIALIZATION_TOPICS_CONFIG] as String?
+        val types = configs[RONIN_DESERIALIZATION_TYPES_CONFIG] as String?
 
-        typeMap = types.split(",")
-            .associate {
-                val (left, right) = it.split(":")
-                left to Class.forName(right).kotlin
-            }
+        topicMap = makeTypeMap(topics)
+        typeMap = makeTypeMap(types)
     }
 
     override fun deserialize(topic: String?, bytes: ByteArray?): RoninEvent<T> {
         throw Exception("Deserialize method without headers is not supported by this deserializer")
     }
 
-    override fun deserialize(topic: String?, headers: Headers, bytes: ByteArray?): RoninEvent<T> {
+    override fun deserialize(topic: String, headers: Headers, bytes: ByteArray): RoninEvent<T> {
         val roninHeaders = headers
             .filter { it.value() != null && it.value().isNotEmpty() }
             .associate { it.key() to it.value().decodeToString() }
@@ -47,7 +47,7 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
             }
 
         val type = roninHeaders[KafkaHeaders.type]!!
-        val valueClass = typeMap[type] ?: throw UnknownEventType(roninHeaders[KafkaHeaders.id].toString(), type, topic)
+        val valueClass = topicMap[topic] ?: typeMap[type] ?: throw UnknownEventType(roninHeaders[KafkaHeaders.id].toString(), type, topic)
 
         try {
             @Suppress("UNCHECKED_CAST")
@@ -57,4 +57,10 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
             throw DeserializationException(type, valueClass)
         }
     }
+
+    private fun makeTypeMap(config: String?): Map<String, KClass<out Any>> =
+        config?.split(",")?.associate {
+            val (left, right) = it.split(":")
+            left.trim() to Class.forName(right.trim()).kotlin
+        } ?: emptyMap()
 }

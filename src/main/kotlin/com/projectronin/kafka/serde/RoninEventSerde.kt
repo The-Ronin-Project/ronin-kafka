@@ -17,7 +17,7 @@ class RoninEventSerde<T> : Serde<RoninEvent<T>> {
         return deserializer
     }
 
-    override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) {
+    override fun configure(configs: MutableMap<String, *>, isKey: Boolean) {
         serializer.configure(configs, isKey)
         deserializer.configure(configs, isKey)
     }

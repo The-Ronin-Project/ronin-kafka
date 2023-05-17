@@ -225,3 +225,19 @@ The `RoninConsumer`'s `exceptionHandler` will be called for two distinct event i
 * `eventProcessingException`: This callback will be called if there are exhausted transient retries or unhandled
   exceptions
   by the consumer's handler function
+
+## Serde
+
+If you'd like to consume the serialization/deserialization functionality of `RoninEvent` directly, you can via either a
+`Serde` (`RoninEventSerde`) or via the direct classes. Either way you go about it, the important thing to be aware of
+is that deserialization must be configured to know what types are expected. This is done based on either the type header
+on the event, or per topic (or a mix). For example:
+
+```properties
+# On a type basis -- these types may be on either the same topic or separate
+ronin.json.deserializer.types=some.type:com.projectronin.foo.SomeClass,other.type:com.projectronin.foo.OtherClass
+
+# Or on a topic basis -- this requires that all events on a topic are always the same type.
+# For example, some.topic must _always_ have events on it that are deserializable to a com.projectronin.foo.Foo instance
+ronin.json.deserializer.topics=some.topic:com.projectronin.foo.Foo,other.topic:com.projectronin.foo.Bar
+```
