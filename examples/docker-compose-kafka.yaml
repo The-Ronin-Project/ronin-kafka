@@ -40,3 +40,10 @@ services:
       - "2181:2181"
     environment:
       - KAFKA_ADVERTISED_HOST_NAME=zookeeper
+
+  kui:
+    image: docker-proxy.devops.projectronin.io/provectuslabs/kafka-ui:latest
+    ports: ["8888:8080"]
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:19092

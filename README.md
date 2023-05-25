@@ -38,6 +38,7 @@ To setup a local development environment for modifying `ronin-kafka`...
 2. build: `./gradlew clean build`
 3. run the example consumer application: `./gradlew examples:consumer-application:run`
 4. run the example producer application: `./gradlew examples:producer-application:run`
+5. Optionally access Kafka UI at `http://localhost:8080/` for an easy way to explore topics/messages/consumers
 
 Additionally, you can run the spring-boot example application like so:
 
