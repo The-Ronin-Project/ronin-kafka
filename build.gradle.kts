@@ -64,6 +64,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.logstash.logback)
     testImplementation(libs.kotlinx.coroutines)
+    testImplementation(libs.kotlinx.coroutines.test)
     testRuntimeOnly(libs.logback.classic)
 }
 
