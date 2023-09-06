@@ -64,7 +64,9 @@ class RoninProducerTests {
                     data = object {
                         val id: Int = 3
                     },
-                    subject = "subject"
+                    subject = "subject",
+                    tenantId = "apposnd",
+                    patientId = "patientXYZ"
                 )
             )
 
@@ -81,6 +83,8 @@ class RoninProducerTests {
             assertEquals("stuff", headers().getString("content-type"))
             assertEquals("le-schema", headers().getString("ce_dataschema"))
             assertEquals("2022-08-08T23:06:40Z", headers().getString("ce_time"))
+            assertEquals("apposnd", headers().getString(KafkaHeaders.tenantId))
+            assertEquals("patientXYZ", headers().getString(KafkaHeaders.patientId))
         }
         assertEquals(metadata, response.get())
 
@@ -318,6 +322,33 @@ class RoninProducerTests {
         with(recordSlot.captured) {
             assertEquals("subject", key())
             assertEquals("subject", headers().getString(KafkaHeaders.subject))
+        }
+    }
+
+    @Test
+    fun eventWithResourceInsteadOfSubject() {
+        val recordSlot = slot<ProducerRecord<String, ByteArray>>()
+        val metadata = mockk<RecordMetadata>()
+        every { kafkaProducer.send(capture(recordSlot), any()) } answers {
+            val block = secondArg<Callback>()
+            block.onCompletion(
+                RecordMetadata(TopicPartition("topic", 1), 1L, 1, System.currentTimeMillis(), 4, 4),
+                RuntimeException("kaboom")
+            )
+            CompletableFuture.completedFuture(metadata)
+        }
+
+        val event = RoninEvent(
+            dataSchema = "dataschema", source = "source", type = "dummy", data = object { val id: Int = 3 },
+            resourceType = "resourceType", resourceId = "resourceId"
+        )
+
+        roninProducer.send(event)
+
+        verify(exactly = 1) { kafkaProducer.send(any(), any()) }
+        with(recordSlot.captured) {
+            assertEquals("resourceType/resourceId", key())
+            assertEquals("resourceType/resourceId", headers().getString(KafkaHeaders.subject))
         }
     }
 }

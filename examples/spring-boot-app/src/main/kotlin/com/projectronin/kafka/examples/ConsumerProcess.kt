@@ -24,7 +24,7 @@ class ConsumerProcess(private val consumer: RoninConsumer) {
         logger.info { "before consuming" }
         consumer
             .process {
-                logger.info { "received ${it.subject} [${it.id}]" }
+                logger.info { "received ${it.getSubject()} [${it.id}]" }
                 RoninEventResult.ACK
             }
         logger.info { "done consuming" }

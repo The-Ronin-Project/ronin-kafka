@@ -229,7 +229,7 @@ class RoninConsumer(
     ): Boolean {
         try {
             (0..transientRetries).forEach { attempt ->
-                logger.debug { "processing event id: `${event.id}` subject: `${event.subject}` attempt $attempt" }
+                logger.debug { "processing event id: `${event.id}` subject: `${event.getSubject()}` attempt $attempt" }
 
                 val start = System.currentTimeMillis()
                 val result = handler(event)

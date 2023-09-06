@@ -63,14 +63,14 @@ class RoninConsumerProcessTests {
     fun `receives events`() {
         every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
             MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
-            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}", "subject"),
+            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}", "resourceType/resourceId"),
             MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
         )
 
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -79,9 +79,41 @@ class RoninConsumerProcessTests {
         assertThat(
             processed,
             contains(
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("one"), "key1.1"),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "subject"),
-                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
+                RoninEvent(
+                    id = "1",
+                    time = fixedInstant,
+                    specVersion = "3",
+                    dataSchema = "4",
+                    dataContentType = "5",
+                    source = "6",
+                    type = "stuff",
+                    data = Stuff("one"),
+                    subject = "key1.1"
+                ),
+                RoninEvent(
+                    id = "1",
+                    time = fixedInstant,
+                    specVersion = "3",
+                    dataSchema = "4",
+                    dataContentType = "5",
+                    source = "6",
+                    type = "stuff",
+                    data = Stuff("two"),
+                    subject = "resourceType/resourceId",
+                    resourceType = "resourceType",
+                    resourceId = "resourceId"
+                ),
+                RoninEvent(
+                    id = "1",
+                    time = fixedInstant,
+                    specVersion = "3",
+                    dataSchema = "4",
+                    dataContentType = "5",
+                    source = "6",
+                    type = "stuff",
+                    data = Stuff("three"),
+                    subject = "last"
+                ),
             )
         )
 
@@ -135,7 +167,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -185,7 +217,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -233,7 +265,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -268,7 +300,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -323,7 +355,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            if (e.subject == "last") {
+            if (e.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -356,7 +388,7 @@ class RoninConsumerProcessTests {
         val processed = mutableListOf<RoninEvent<*>>()
         roninConsumer.process { e ->
             processed.add(e)
-            when (e.subject) {
+            when (e.getSubject()) {
                 "key1.2" -> throw RuntimeException("kaboom")
                 "last" -> roninConsumer.stop()
             }
@@ -412,7 +444,7 @@ class RoninConsumerProcessTests {
         val exception = RuntimeException("kaboom")
         roninConsumer.process { e ->
             processed.add(e)
-            when (e.subject) {
+            when (e.getSubject()) {
                 "key1.2" -> throw exception
                 "last" -> roninConsumer.stop()
             }
@@ -570,5 +602,40 @@ class RoninConsumerProcessTests {
         assertTrue(threwException.get())
         // But that KafkaConsumer.process didn't throw it
         assertDoesNotThrow { future.get(100, TimeUnit.MILLISECONDS) }
+    }
+
+    // basically just here for test coverage, but checks that things still work without a meter registry
+    @Test
+    fun `receives events - resource set`() {
+        val roninConsumer = RoninConsumer(
+            listOf("topic.1", "topic.2"),
+            mapOf("stuff" to Stuff::class),
+            kafkaConsumer = kafkaConsumer,
+            kafkaProperties = RoninConsumerKafkaProperties()
+        )
+        every { kafkaConsumer.poll(any<Duration>()) } returns MockUtils.records(
+            MockUtils.record("stuff", "key1.1", "{\"id\": \"one\"}"),
+            MockUtils.record("stuff", "key1.2", "{\"id\": \"two\"}"),
+            MockUtils.record("stuff", "last", "{\"id\": \"three\"}"),
+        )
+
+        val processed = mutableListOf<RoninEvent<*>>()
+        roninConsumer.process { e ->
+            processed.add(e)
+            if (e.getSubject() == "last") {
+                roninConsumer.stop()
+            }
+            RoninEventResult.ACK
+        }
+
+        assertThat(
+            processed,
+            contains(
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("one"), "key1.1"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("two"), "key1.2"),
+                RoninEvent("1", fixedInstant, "3", "4", "5", "6", "stuff", Stuff("three"), "last"),
+            )
+        )
+        verify(exactly = 3) { kafkaConsumer.commitSync(mapOf(TopicPartition("topic", 1) to OffsetAndMetadata(43))) }
     }
 }

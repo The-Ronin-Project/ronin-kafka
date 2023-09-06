@@ -15,12 +15,17 @@ class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
     private val instantFormatter = DateTimeFormatter.ISO_INSTANT
 
     override fun serialize(topic: String?, data: RoninEvent<T>?): ByteArray {
-        throw SerializationException("Serialize method without headers is not a valid means to deserialize a RoninEvent")
+        throw SerializationException(
+            "Serialize method without headers is not a valid means to deserialize a RoninEvent"
+        )
     }
 
     override fun serialize(topic: String?, headers: Headers?, event: RoninEvent<T>?): ByteArray? {
         if (headers == null)
-            throw SerializationException("Headers are required to deserialize a RoninEvent into, but the headers were not supplied.")
+            throw SerializationException(
+                "Headers are required to deserialize a RoninEvent into, but the headers were not supplied."
+            )
+
         if (event == null)
             return null
 
@@ -32,8 +37,9 @@ class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
         headers.add(StringHeader(KafkaHeaders.dataSchema, event.dataSchema))
         headers.add(StringHeader(KafkaHeaders.time, instantFormatter.format(event.time)))
 
-        if (event.subject != null)
-            headers.add(StringHeader(KafkaHeaders.subject, event.subject))
+        event.tenantId?.let { headers.add(StringHeader(KafkaHeaders.tenantId, event.tenantId)) }
+        event.patientId?.let { headers.add(StringHeader(KafkaHeaders.patientId, event.patientId)) }
+        event.getSubject()?.let { headers.add(StringHeader(KafkaHeaders.subject, event.getSubject()!!)) }
 
         return mapper.writeValueAsBytes(event.data)
     }

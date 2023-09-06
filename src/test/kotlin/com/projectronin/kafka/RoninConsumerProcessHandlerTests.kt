@@ -46,7 +46,7 @@ class RoninConsumerProcessHandlerTests {
         )
 
         roninConsumer.process {
-            if (it.subject == "last") {
+            if (it.getSubject() == "last") {
                 roninConsumer.stop()
             }
             RoninEventResult.ACK
@@ -67,12 +67,12 @@ class RoninConsumerProcessHandlerTests {
 
         var counter = 0
         roninConsumer.process {
-            if (it.subject == "last") {
+            if (it.getSubject() == "last") {
                 roninConsumer.stop()
             }
             counter++
             // return TRANSIENT_FAILURE for the first call of `key1.1`, ACK for everything else
-            if (it.subject == "last" || counter > 1) {
+            if (it.getSubject() == "last" || counter > 1) {
                 RoninEventResult.ACK
             } else {
                 RoninEventResult.TRANSIENT_FAILURE
@@ -153,7 +153,7 @@ class RoninConsumerProcessHandlerTests {
         var counter = 0
         roninConsumer.process {
             counter++
-            if (it.subject == "last") {
+            if (it.getSubject() == "last") {
                 RoninEventResult.ACK
             } else {
                 RoninEventResult.PERMANENT_FAILURE
@@ -179,7 +179,7 @@ class RoninConsumerProcessHandlerTests {
         var counter = 0
         roninConsumer.process {
             counter++
-            if (it.subject == "last") {
+            if (it.getSubject() == "last") {
                 RoninEventResult.ACK
             } else {
                 throw RuntimeException("kaboom")

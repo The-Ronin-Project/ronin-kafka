@@ -60,7 +60,7 @@ open class RoninProducer(
      * @return Future containing the kafka RecordMetadata result
      */
     fun <T> send(event: RoninEvent<T>, key: String? = null): Future<RecordMetadata> {
-        val messageKey = key ?: event.subject
+        val messageKey = key ?: event.getSubject()
         val record = ProducerRecord(
             topic,
             null, // partition
@@ -77,14 +77,16 @@ open class RoninProducer(
                     when (e) {
                         null -> {
                             logger.debug {
-                                "successfully sent event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
+                                "successfully sent event id: `${event.id}` " +
+                                    "subject: `${event.getSubject()}` metadata: `$metadata`"
                             }
                             true
                         }
 
                         else -> {
                             logger.error(e) {
-                                "Exception sending event id: `${event.id}` subject: `${event.subject}` metadata: `$metadata`"
+                                "Exception sending event id: `${event.id}` " +
+                                    "subject: `${event.getSubject()}` metadata: `$metadata`"
                             }
                             false
                         }
@@ -129,18 +131,19 @@ open class RoninProducer(
      * @return list of StringHeader
      */
     private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> {
-        val headers = mutableListOf<StringHeader>(
+        val headers = mutableListOf(
             StringHeader(KafkaHeaders.id, event.id),
             StringHeader(KafkaHeaders.source, event.source),
             StringHeader(KafkaHeaders.specVersion, event.specVersion),
             StringHeader(KafkaHeaders.type, event.type),
             StringHeader(KafkaHeaders.contentType, event.dataContentType),
             StringHeader(KafkaHeaders.dataSchema, event.dataSchema),
-            StringHeader(KafkaHeaders.time, instantFormatter.format(event.time)),
+            StringHeader(KafkaHeaders.time, instantFormatter.format(event.time))
         )
 
-        if (event.subject != null)
-            headers.add(StringHeader(KafkaHeaders.subject, event.subject))
+        event.tenantId?.let { headers.add(StringHeader(KafkaHeaders.tenantId, event.tenantId)) }
+        event.patientId?.let { headers.add(StringHeader(KafkaHeaders.patientId, event.patientId)) }
+        event.getSubject()?.let { headers.add(StringHeader(KafkaHeaders.subject, event.getSubject()!!)) }
 
         return headers
     }

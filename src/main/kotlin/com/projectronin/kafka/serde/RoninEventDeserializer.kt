@@ -9,6 +9,7 @@ import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.exceptions.DeserializationException
 import com.projectronin.kafka.exceptions.EventHeaderMissing
 import com.projectronin.kafka.exceptions.UnknownEventType
+import jdk.jshell.spi.ExecutionControl.NotImplementedException
 import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.serialization.Deserializer
 import kotlin.reflect.KClass
@@ -29,7 +30,7 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
     }
 
     override fun deserialize(topic: String?, bytes: ByteArray?): RoninEvent<T> {
-        throw Exception("Deserialize method without headers is not supported by this deserializer")
+        throw NotImplementedException("Deserialize method without headers is not supported by this deserializer")
     }
 
     override fun deserialize(topic: String, headers: Headers, bytes: ByteArray): RoninEvent<T> {
@@ -47,7 +48,9 @@ class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
             }
 
         val type = roninHeaders[KafkaHeaders.type]!!
-        val valueClass = topicMap[topic] ?: typeMap[type] ?: throw UnknownEventType(roninHeaders[KafkaHeaders.id].toString(), type, topic)
+        val valueClass = topicMap[topic]
+            ?: typeMap[type]
+            ?: throw UnknownEventType(roninHeaders[KafkaHeaders.id].toString(), type, topic)
 
         try {
             @Suppress("UNCHECKED_CAST")

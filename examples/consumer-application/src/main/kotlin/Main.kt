@@ -46,7 +46,7 @@ fun main() {
     logger.info { "before consuming" }
     roninConsumer
         .process {
-            logger.info { "got ${it.subject} [${it.id}]" }
+            logger.info { "got ${it.getSubject()} [${it.id}]" }
             RoninEventResult.ACK
         }
     logger.info { "done consuming" }

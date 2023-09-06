@@ -53,7 +53,7 @@ class RoninEventDeserializerTest {
         assertEquals("content", event.dataContentType)
         assertEquals("schema", event.dataSchema)
         assertEquals(fixedInstant, event.time)
-        assertEquals("stuff.3", event.subject)
+        assertEquals("stuff.3", event.getSubject())
         assertEquals(Stuff("3"), event.data)
     }
 
@@ -83,7 +83,7 @@ class RoninEventDeserializerTest {
         assertEquals("content", event.dataContentType)
         assertEquals("schema", event.dataSchema)
         assertEquals(fixedInstant, event.time)
-        assertEquals("stuff.3", event.subject)
+        assertEquals("stuff.3", event.getSubject())
         assertEquals(Stuff("3"), event.data)
     }
 

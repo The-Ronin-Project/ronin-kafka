@@ -9,6 +9,8 @@ object KafkaHeaders {
     const val source = "ce_source"
     const val type = "ce_type"
     const val subject = "ce_subject"
+    const val tenantId = "ronin_tenant_id"
+    const val patientId = "ronin_patient_id"
 
     val required = listOf(
         id,

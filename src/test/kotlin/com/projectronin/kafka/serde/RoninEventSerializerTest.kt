@@ -5,6 +5,7 @@ import com.projectronin.kafka.RoninConsumer
 import com.projectronin.kafka.RoninProducer
 import com.projectronin.kafka.config.RoninConsumerKafkaProperties
 import com.projectronin.kafka.config.RoninProducerKafkaProperties
+import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
 import com.projectronin.kafka.data.RoninEventResult
 import io.mockk.every
@@ -51,14 +52,14 @@ class RoninEventSerializerTest {
         val serializedHeaders = RecordHeaders()
         val serializedBytes = serializer.serialize("topic", serializedHeaders, originalEvent)
 
-        assertEquals("1", serializedHeaders.getString("ce_id"))
-        assertEquals("tests", serializedHeaders.getString("ce_source"))
-        assertEquals("4.2", serializedHeaders.getString("ce_specversion"))
-        assertEquals("dummy", serializedHeaders.getString("ce_type"))
-        assertEquals("stuff", serializedHeaders.getString("content-type"))
-        assertEquals("le-schema", serializedHeaders.getString("ce_dataschema"))
-        assertEquals("2022-08-08T23:06:40Z", serializedHeaders.getString("ce_time"))
-        assertEquals("subject", serializedHeaders.getString("ce_subject"))
+        assertEquals("1", serializedHeaders.get("ce_id"))
+        assertEquals("tests", serializedHeaders.get("ce_source"))
+        assertEquals("4.2", serializedHeaders.get("ce_specversion"))
+        assertEquals("dummy", serializedHeaders.get("ce_type"))
+        assertEquals("stuff", serializedHeaders.get("content-type"))
+        assertEquals("le-schema", serializedHeaders.get("ce_dataschema"))
+        assertEquals("2022-08-08T23:06:40Z", serializedHeaders.get("ce_time"))
+        assertEquals("subject", serializedHeaders.get("ce_subject"))
 
         assertEquals("{\"id\":\"3\"}", serializedBytes?.decodeToString())
     }
@@ -122,7 +123,9 @@ class RoninEventSerializerTest {
             source = "tests",
             type = "dummy",
             data = Stuff("3"),
-            subject = "subject"
+            subject = "subject",
+            tenantId = "apposnd",
+            patientId = "patientXYZ"
         )
 
         val producedRecord = captureRecordFromRoninProducer(originalEvent)
@@ -135,17 +138,19 @@ class RoninEventSerializerTest {
             assertEquals("topic", topic())
 
             // Assert that the RoninConsumer put subject into key, Serializer put it into ce_subject
-            assertEquals("subject", serializedHeaders.getString("ce_subject"))
+            assertEquals("subject", serializedHeaders.get("ce_subject"))
             assertEquals("subject", key())
 
             // Assert the rest of the headers match what the consumer has
-            assertEquals(headers().getString("ce_id"), serializedHeaders.getString("ce_id"))
-            assertEquals(headers().getString("ce_source"), serializedHeaders.getString("ce_source"))
-            assertEquals(headers().getString("ce_specversion"), serializedHeaders.getString("ce_specversion"))
-            assertEquals(headers().getString("ce_type"), serializedHeaders.getString("ce_type"))
-            assertEquals(headers().getString("content-type"), serializedHeaders.getString("content-type"))
-            assertEquals(headers().getString("ce_dataschema"), serializedHeaders.getString("ce_dataschema"))
-            assertEquals(headers().getString("ce_time"), serializedHeaders.getString("ce_time"))
+            assertEquals(headers().get("ce_id"), serializedHeaders.get("ce_id"))
+            assertEquals(headers().get("ce_source"), serializedHeaders.get("ce_source"))
+            assertEquals(headers().get("ce_specversion"), serializedHeaders.get("ce_specversion"))
+            assertEquals(headers().get("ce_type"), serializedHeaders.get("ce_type"))
+            assertEquals(headers().get("content-type"), serializedHeaders.get("content-type"))
+            assertEquals(headers().get("ce_dataschema"), serializedHeaders.get("ce_dataschema"))
+            assertEquals(headers().get("ce_time"), serializedHeaders.get("ce_time"))
+            assertEquals(headers().get(KafkaHeaders.tenantId), serializedHeaders.get(KafkaHeaders.tenantId))
+            assertEquals(headers().get(KafkaHeaders.patientId), serializedHeaders.get(KafkaHeaders.patientId))
 
             // Assert that the bytes in data are the same
             assertArrayEquals(value(), serializedBytes)
@@ -222,5 +227,5 @@ class RoninEventSerializerTest {
         return recordSlot.captured
     }
 
-    private fun Headers.getString(key: String) = lastHeader(key).value().decodeToString()
+    private fun Headers.get(key: String) = lastHeader(key).value().decodeToString()
 }
