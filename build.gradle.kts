@@ -14,7 +14,7 @@ plugins {
 
 allprojects {
     group = "com.projectronin"
-    version = "1.1.1"
+    version = "1.1.2-SNAPSHOT"
 
     repositories {
         maven {
