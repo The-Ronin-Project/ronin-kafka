@@ -1,0 +1,27 @@
+name: Kotlin CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - v*
+    tags:
+      - 'v*.*.*'
+  pull_request:
+
+jobs:
+  build_and_test:
+    runs-on: self-hosted
+    steps:
+      - name: Setup
+        uses: projectronin/github/.github/actions/setup-jdk-build@setup-jdk-build/v1
+      - name: Build and Test
+        uses: projectronin/github/.github/actions/basic-gradle-build-publish@basic_gradle_build_publish/v4
+        with:
+          nexus_user: ${{ secrets.NEXUS_MAVEN_USER }}
+          nexus_token: ${{ secrets.NEXUS_MAVEN_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          sonar_host_url: ${{ secrets.SONAR_HOST_URL }}
+          dd-api-key: ${{ secrets.DATADOG_API_KEY }}
+          dd-service-name: ronin-kafka

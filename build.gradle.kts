@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.ktlint)
     `maven-publish`
     alias(libs.plugins.dokka)
+    alias(libs.plugins.sonarqube)
 }
 
 allprojects {
