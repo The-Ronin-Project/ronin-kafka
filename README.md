@@ -34,11 +34,13 @@ The TODO list:
 
 To setup a local development environment for modifying `ronin-kafka`...
 
+NOTE: Only Step 1 is necessary if you just want a local cluster to test other kafka-using services
+
 1. run a local kafka cluster: `docker compose -f examples/docker-compose-kafka.yaml up -d`
 2. build: `./gradlew clean build`
 3. run the example consumer application: `./gradlew examples:consumer-application:run`
 4. run the example producer application: `./gradlew examples:producer-application:run`
-5. Optionally access Kafka UI at `http://localhost:8080/` for an easy way to explore topics/messages/consumers
+5. Optionally access Kafka UI at `http://localhost:8888/` for an easy way to explore topics/messages/consumers
 
 Additionally, you can run the spring-boot example application like so:
 
