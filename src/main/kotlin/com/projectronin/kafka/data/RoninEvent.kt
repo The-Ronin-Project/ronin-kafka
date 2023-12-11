@@ -22,7 +22,8 @@ data class RoninEvent<T>(
     val tenantId: String? = null,
     val patientId: String? = null,
     val resourceType: String? = subject?.resourceType(),
-    val resourceId: String? = subject?.resourceId()
+    val resourceId: String? = subject?.resourceId(),
+    val resourceVersion: Int? = null
 ) {
     @Deprecated("Will be moving to private as headers concept should not be exposed")
     constructor(headers: Map<String, String>, data: T) : this(
@@ -38,6 +39,7 @@ data class RoninEvent<T>(
         patientId = headers[KafkaHeaders.patientId],
         resourceType = (headers[KafkaHeaders.subject] as Subject).resourceType(),
         resourceId = (headers[KafkaHeaders.subject] as Subject).resourceId(),
+        resourceVersion = headers[KafkaHeaders.resourceVersion]?.toIntOrNull(),
         data = data
     )
 

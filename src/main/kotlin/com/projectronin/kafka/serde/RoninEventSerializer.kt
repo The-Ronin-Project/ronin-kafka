@@ -12,7 +12,6 @@ import java.time.format.DateTimeFormatter
 
 class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
     private val mapper: ObjectMapper = MapperFactory.mapper
-    private val instantFormatter = DateTimeFormatter.ISO_INSTANT
 
     override fun serialize(topic: String?, data: RoninEvent<T>?): ByteArray {
         throw SerializationException(
@@ -29,18 +28,24 @@ class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
         if (event == null)
             return null
 
-        headers.add(StringHeader(KafkaHeaders.id, event.id))
-        headers.add(StringHeader(KafkaHeaders.source, event.source))
-        headers.add(StringHeader(KafkaHeaders.specVersion, event.specVersion))
-        headers.add(StringHeader(KafkaHeaders.type, event.type))
-        headers.add(StringHeader(KafkaHeaders.contentType, event.dataContentType))
-        headers.add(StringHeader(KafkaHeaders.dataSchema, event.dataSchema))
-        headers.add(StringHeader(KafkaHeaders.time, instantFormatter.format(event.time)))
-
-        event.tenantId?.let { headers.add(StringHeader(KafkaHeaders.tenantId, event.tenantId)) }
-        event.patientId?.let { headers.add(StringHeader(KafkaHeaders.patientId, event.patientId)) }
-        event.getSubject()?.let { headers.add(StringHeader(KafkaHeaders.subject, event.getSubject()!!)) }
-
+        headers.addRoninEventHeaders(event)
         return mapper.writeValueAsBytes(event.data)
     }
 }
+
+fun Headers.addRoninEventHeaders(event: RoninEvent<*>) {
+    add(KafkaHeaders.id, event.id)
+    add(KafkaHeaders.source, event.source)
+    add(KafkaHeaders.specVersion, event.specVersion)
+    add(KafkaHeaders.type, event.type)
+    add(KafkaHeaders.contentType, event.dataContentType)
+    add(KafkaHeaders.dataSchema, event.dataSchema)
+    add(KafkaHeaders.time, DateTimeFormatter.ISO_INSTANT.format(event.time))
+    addWhenNotNull(KafkaHeaders.tenantId, event.tenantId)
+    addWhenNotNull(KafkaHeaders.patientId, event.patientId)
+    addWhenNotNull(KafkaHeaders.subject, event.getSubject())
+    addWhenNotNull(KafkaHeaders.resourceVersion, event.resourceVersion.toString())
+}
+
+fun Headers.add(header: String, value: String): Headers = add(StringHeader(header, value))
+fun Headers.addWhenNotNull(header: String, value: String?) = value?.let { add(header, value) }

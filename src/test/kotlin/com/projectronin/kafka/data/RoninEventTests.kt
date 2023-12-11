@@ -157,6 +157,7 @@ class RoninEventTests {
         val data = Data(1)
         val time = Instant.now()
 
+        @Suppress("DEPRECATION")
         val event = RoninEvent(
             headers = mapOf(
                 KafkaHeaders.id to "id12",
@@ -168,6 +169,7 @@ class RoninEventTests {
                 KafkaHeaders.patientId to "patientId",
                 KafkaHeaders.dataSchema to "https://projectronin.com/data-schema",
                 KafkaHeaders.source to "tests",
+                KafkaHeaders.resourceVersion to "5",
                 KafkaHeaders.type to "data.created"
             ),
             data = data
@@ -185,6 +187,7 @@ class RoninEventTests {
         assertEquals("patientId", event.patientId)
         assertEquals("resourceType", event.resourceType)
         assertEquals("resourceId", event.resourceId)
+        assertEquals(5, event.resourceVersion)
         assertEquals(data, event.data)
     }
 }

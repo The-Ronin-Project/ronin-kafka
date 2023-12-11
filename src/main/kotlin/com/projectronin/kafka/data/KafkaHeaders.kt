@@ -11,6 +11,7 @@ object KafkaHeaders {
     const val subject = "ce_subject"
     const val tenantId = "ronin_tenant_id"
     const val patientId = "ronin_patient_id"
+    const val resourceVersion = "ronin_resourceversion"
 
     val required = listOf(
         id,

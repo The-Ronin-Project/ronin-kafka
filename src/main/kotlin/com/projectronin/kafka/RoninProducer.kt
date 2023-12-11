@@ -3,15 +3,15 @@ package com.projectronin.kafka
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.projectronin.kafka.config.MapperFactory
 import com.projectronin.kafka.config.RoninProducerKafkaProperties
-import com.projectronin.kafka.data.KafkaHeaders
 import com.projectronin.kafka.data.RoninEvent
-import com.projectronin.kafka.data.StringHeader
+import com.projectronin.kafka.serde.addRoninEventHeaders
 import io.micrometer.core.instrument.MeterRegistry
 import mu.KLogger
 import mu.KotlinLogging
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.header.internals.RecordHeaders
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -130,21 +130,9 @@ open class RoninProducer(
      * translate [event] into a list of headers for a kafka record
      * @return list of StringHeader
      */
-    private fun <T> recordHeaders(event: RoninEvent<T>): List<StringHeader> {
-        val headers = mutableListOf(
-            StringHeader(KafkaHeaders.id, event.id),
-            StringHeader(KafkaHeaders.source, event.source),
-            StringHeader(KafkaHeaders.specVersion, event.specVersion),
-            StringHeader(KafkaHeaders.type, event.type),
-            StringHeader(KafkaHeaders.contentType, event.dataContentType),
-            StringHeader(KafkaHeaders.dataSchema, event.dataSchema),
-            StringHeader(KafkaHeaders.time, instantFormatter.format(event.time))
-        )
-
-        event.tenantId?.let { headers.add(StringHeader(KafkaHeaders.tenantId, event.tenantId)) }
-        event.patientId?.let { headers.add(StringHeader(KafkaHeaders.patientId, event.patientId)) }
-        event.getSubject()?.let { headers.add(StringHeader(KafkaHeaders.subject, event.getSubject()!!)) }
-
+    private fun <T> recordHeaders(event: RoninEvent<T>): RecordHeaders {
+        val headers = RecordHeaders()
+        headers.addRoninEventHeaders(event)
         return headers
     }
 }
