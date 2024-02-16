@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit
  * @property kafkaProducer [KafkaProducer] instance to use for sending kafka records
  * @constructor Creates a kafka producer for RoninEvents
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 open class RoninProducer(
     val topic: String,
     val source: String,

@@ -5,6 +5,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.streams.errors.ProductionExceptionHandler
 import java.lang.Exception
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class LogAndContinueProductionExceptionHandler : ProductionExceptionHandler {
     private val logger = KotlinLogging.logger {}
 

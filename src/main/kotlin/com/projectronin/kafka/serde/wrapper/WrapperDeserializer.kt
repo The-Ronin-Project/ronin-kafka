@@ -10,6 +10,7 @@ import com.projectronin.kafka.exceptions.UnknownEventType
 import org.apache.kafka.common.header.Headers
 import kotlin.reflect.KClass
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class WrapperDeserializer<T> : org.apache.kafka.common.serialization.Deserializer<RoninWrapper<T>> {
     private lateinit var typeMap: Map<String, KClass<*>>
     private val mapper: ObjectMapper = MapperFactory.mapper

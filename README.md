@@ -1,4 +1,4 @@
-# Module ronin-kafka
+# Module ronin-kafka [Deprecated - No Longer Maintained]
 
 `ronin-kafka` is a messaging library for sending and receiving `RoninEvent` objects via kafka. A
 `RoninEvent` object is a data class that provides

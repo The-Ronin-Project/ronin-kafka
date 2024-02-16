@@ -8,6 +8,7 @@ import com.projectronin.kafka.data.StringHeader
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.Serializer
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class WrapperSerializer<T> : Serializer<RoninWrapper<T>> {
     private val mapper: ObjectMapper = MapperFactory.mapper
 

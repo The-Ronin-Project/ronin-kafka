@@ -9,6 +9,7 @@ import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.streams.errors.DeserializationExceptionHandler
 import org.apache.kafka.streams.processor.ProcessorContext
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class DeadLetterDeserializationExceptionHandler : DeserializationExceptionHandler {
     private val logger = KotlinLogging.logger {}
     private var dlq: String? = null

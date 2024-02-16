@@ -1,5 +1,6 @@
 package com.projectronin.kafka.data
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 object KafkaHeaders {
     const val id = "ce_id"
     const val time = "ce_time"

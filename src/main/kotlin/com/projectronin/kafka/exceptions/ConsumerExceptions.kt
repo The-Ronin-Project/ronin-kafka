@@ -10,6 +10,7 @@ import kotlin.reflect.KClass
  * See Also:
  * [Ronin Event Standard](https://projectronin.atlassian.net/wiki/spaces/ENG/pages/1748041738/Ronin+Event+Standard)
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class EventHeaderMissing(missingHeaders: List<String>, val topic: String? = null) : RuntimeException(
     "Unable to process event. The following headers are required: ${missingHeaders.joinToString(", ")}"
 )
@@ -18,6 +19,7 @@ class EventHeaderMissing(missingHeaders: List<String>, val topic: String? = null
  * Occurs when a Kafka message is received with a `ce_type` header that the [com.projectronin.kafka.RoninConsumer]'s
  * [com.projectronin.kafka.RoninConsumer.typeMap] does not have an entry for.
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class UnknownEventType(val key: String? = null, val type: String?, val topic: String? = null) :
     RuntimeException("No processor found for event type `$type`")
 
@@ -25,9 +27,11 @@ class UnknownEventType(val key: String? = null, val type: String?, val topic: St
  * Occurs when a process handler returns [RoninEventResult.TRANSIENT_FAILURE] more than
  * `ronin.handler.transient.retries` times
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class TransientRetriesExhausted(attempts: Int) :
     RuntimeException("Skipping event after $attempts transient failures")
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class DeserializationException(val type: String, valueClass: KClass<*>) :
     RuntimeException(
         "There was an exception attempting to deserialize " +

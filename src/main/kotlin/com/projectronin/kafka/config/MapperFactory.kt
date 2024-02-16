@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 object MapperFactory {
     val mapper by lazy {
         jsonMapper {

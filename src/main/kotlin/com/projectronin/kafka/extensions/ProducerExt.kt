@@ -7,6 +7,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 suspend fun <K, V> Producer<K, V>.asyncSend(record: ProducerRecord<K, V>) =
     suspendCoroutine<RecordMetadata> { continuation ->
         send(record) { metadata, exception ->

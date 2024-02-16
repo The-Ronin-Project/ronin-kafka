@@ -3,6 +3,7 @@ package com.projectronin.kafka.serde.wrapper
 import com.projectronin.kafka.data.RoninWrapper
 import org.apache.kafka.common.serialization.Serde
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class WrapperSerde<T> : Serde<RoninWrapper<T>> {
     private val serializer = com.projectronin.kafka.serde.wrapper.WrapperSerializer<T>()
     private val deserializer = com.projectronin.kafka.serde.wrapper.WrapperDeserializer<T>()

@@ -5,6 +5,7 @@ import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serializer
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninEventSerde<T> : Serde<RoninEvent<T>> {
     private val serializer = RoninEventSerializer<T>()
     private val deserializer = RoninEventDeserializer<T>()

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
  *  * bootstrap.servers
  *  * group.id
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninConsumerKafkaProperties(vararg configs: Pair<String, *>) {
     val properties: Properties by lazy {
         Properties()

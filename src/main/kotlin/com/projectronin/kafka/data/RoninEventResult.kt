@@ -1,5 +1,6 @@
 package com.projectronin.kafka.data
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 enum class RoninEventResult {
     /**
      * The [RoninEvent] was processed successfully and should be acknowledged as processed

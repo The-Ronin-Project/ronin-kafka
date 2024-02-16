@@ -23,6 +23,7 @@ import org.apache.kafka.streams.errors.ProductionExceptionHandler
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class KafkaConfigurator private constructor(
     private val configMap: MutableMap<String, Any?>
 ) {

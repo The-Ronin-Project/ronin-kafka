@@ -10,6 +10,7 @@ import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.serialization.Serializer
 import java.time.format.DateTimeFormatter
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninEventSerializer<T> : Serializer<RoninEvent<T>> {
     private val mapper: ObjectMapper = MapperFactory.mapper
 

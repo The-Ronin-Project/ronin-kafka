@@ -13,6 +13,7 @@ import org.apache.kafka.common.header.Headers
 import org.apache.kafka.common.serialization.Deserializer
 import kotlin.reflect.KClass
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninEventDeserializer<T> : Deserializer<RoninEvent<T>> {
     private lateinit var topicMap: Map<String, KClass<*>>
     private lateinit var typeMap: Map<String, KClass<*>>

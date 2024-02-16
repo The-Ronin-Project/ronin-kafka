@@ -41,6 +41,7 @@ import kotlin.reflect.KClass
  * @property exceptionHandler Optional error handler for processing failed [RoninEvent]s
  * @constructor Creates a kafka consumer for RoninEvents
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninConsumer(
     val topics: List<String>,
     val typeMap: Map<String, KClass<*>>,

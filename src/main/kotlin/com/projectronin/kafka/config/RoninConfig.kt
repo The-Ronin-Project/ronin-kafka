@@ -1,5 +1,6 @@
 package com.projectronin.kafka.config
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninConfig private constructor() {
     companion object {
         const val RONIN_DESERIALIZATION_TYPES_CONFIG = "ronin.json.deserializer.types"

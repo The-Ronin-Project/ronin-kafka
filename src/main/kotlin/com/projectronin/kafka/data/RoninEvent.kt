@@ -8,6 +8,7 @@ typealias Subject = String
 /**
  * Implementation of the [Ronin Event Standard](https://projectronin.atlassian.net/wiki/spaces/ENG/pages/1748041738/Ronin+Event+Standard)
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 data class RoninEvent<T>(
     val id: String = defaultId(),
     val time: Instant = defaultTime(),

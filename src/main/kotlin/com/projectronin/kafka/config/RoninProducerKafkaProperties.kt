@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit
  *  * bootstrap.servers
  *
  */
+@Deprecated("Library has been replaced by ronin-common kafka")
 class RoninProducerKafkaProperties(vararg configs: Pair<String, *>) {
     companion object {
         private const val MB = 1024 * 1024

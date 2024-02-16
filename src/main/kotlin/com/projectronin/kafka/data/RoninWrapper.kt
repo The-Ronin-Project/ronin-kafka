@@ -1,5 +1,6 @@
 package com.projectronin.kafka.data
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 data class RoninWrapper<T>(
     val wrapperVersion: String = "1",
     val sourceService: String,

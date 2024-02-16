@@ -4,6 +4,7 @@ import com.projectronin.kafka.config.KafkaConfigurator
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 
+@Deprecated("Library has been replaced by ronin-common kafka")
 object DeadLetterProducer {
     private var producer: KafkaProducer<ByteArray, ByteArray>? = null
 
